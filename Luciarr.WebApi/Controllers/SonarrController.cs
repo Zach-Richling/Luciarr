@@ -20,7 +20,6 @@ namespace Luciarr.WebApi.Controllers
         private readonly ILogger<SonarrController> _logger;
         private readonly SonarrClient _sonarrClient;
         private readonly SonarrSettings _sonarrSettings;
-        private static readonly JsonSerializerOptions _jsonSettings = new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
         public SonarrController(SonarrClient sonarrClient, IOptions<SonarrSettings> sonarrSettings, ILogger<SonarrController> logger)
         {
