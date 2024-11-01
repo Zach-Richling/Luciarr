@@ -29,3 +29,5 @@ An appsettings.json file must be configured in the root directory of the executa
 
 - SonarrSettings
   - IgnoreTvdbIds : list of integers
+
+By adding Urls the default address and port can be changed.
