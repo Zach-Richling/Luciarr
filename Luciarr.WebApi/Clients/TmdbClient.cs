@@ -28,7 +28,7 @@ namespace Luciarr.WebApi.Clients
                 { "page", 1 },
                 { "sort_by", "popularity.desc" },
                 { "with_release_type", "2|3" },
-                { "release_date.gte", DateTime.Now.AddDays(30).ToString("yyyy-MM-dd") },
+                { "release_date.gte", DateTime.Now.AddDays(14).ToString("yyyy-MM-dd") },
                 { "release_date.lte", DateTime.Now.ToString("yyyy-MM-dd") }
             };
 
