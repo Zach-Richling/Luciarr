@@ -66,6 +66,12 @@ namespace Luciarr.WebApi.Controllers
                 //Uncomment for local testing
                 //series.Path = CreateSeriesFolder(series.Path, series.Seasons.Count);
 
+                if (!Path.Exists(series.Path))
+                {
+                    _logger.LogWarning("{Path} does not exist", series.Path);
+                    return BadRequest("Series path does not exist");
+                }
+
                 var seasonFolders = Directory.GetDirectories(series.Path);
 
                 var previousSeasonIncomplete = false;
@@ -79,8 +85,14 @@ namespace Luciarr.WebApi.Controllers
                         }
 
                         var seasonFolder = seasonFolders.Where(x => GetSeasonRegex(season.SeasonNumber).IsMatch(x)).FirstOrDefault();
-                        if (seasonFolder == null)
+                        if (seasonFolder == null && season.Statistics.PercentOfEpisodes == 0)
                         {
+                            previousSeasonIncomplete = true;
+                            continue;
+                        } 
+                        else if (seasonFolder == null)
+                        {
+                            _logger.LogWarning("Could not find season folder for {Title}, S{Season}", series.Title, season.SeasonNumber);
                             continue;
                         }
 
@@ -198,7 +210,7 @@ namespace Luciarr.WebApi.Controllers
 
         private static Regex GetSeasonRegex(int seasonNumber)
         {
-            return new Regex($"Season 0?{seasonNumber}( .*)?$");
+            return new Regex($"[S|s](eason)? ?0?{seasonNumber}( .*)?$");
         }
 
         public class WebhookDownloadPayload

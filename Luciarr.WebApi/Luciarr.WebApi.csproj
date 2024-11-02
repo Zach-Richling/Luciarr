@@ -8,7 +8,7 @@
     <RootNamespace>Luciarr</RootNamespace>
     <UserSecretsId>fbc52a29-ec6e-4c50-9104-0e90dc3dea04</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <Version>1.0.0</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
   <ItemGroup>
