@@ -63,6 +63,9 @@ namespace Luciarr.WebApi.Controllers
                     return NotFound("Series could not be found");
                 }
 
+                //Uncomment for local testing
+                //series.Path = CreateSeriesFolder(series.Path, series.Seasons.Count);
+
                 var seasonFolders = Directory.GetDirectories(series.Path);
 
                 var previousSeasonIncomplete = false;
@@ -126,12 +129,13 @@ namespace Luciarr.WebApi.Controllers
 
                                     foreach (var episode in filteredEpisodes.OrderBy(x => x.EpisodeNumber))
                                     {
-                                        if (!currentHidden.Contains(episode.EpisodeFile!.Path)) 
+                                        var fileName = Path.GetFileName(episode.EpisodeFile!.Path);
+                                        if (!currentHidden.Contains(fileName)) 
                                         {
                                             _logger.LogInformation("Hiding {Name}, S{SeasonNumber}E{EpisodeNumber}", series.Title, episode.SeasonNumber, episode.EpisodeNumber);
                                         }
 
-                                        fileStream.WriteLine(episode.EpisodeFile!.Path);
+                                        fileStream.WriteLine(fileName);
                                     }
                                 }
                             }
@@ -160,6 +164,21 @@ namespace Luciarr.WebApi.Controllers
             }
         }
 
+        //Function for testing locally
+        private string CreateSeriesFolder(string seriesPath, int seasons)
+        {
+            var path = "C:\\Temp";
+            var folderName = new DirectoryInfo(seriesPath).Name;
+            var newPath = Path.Combine(path, folderName);
+            Directory.CreateDirectory(newPath);
+            for (int i = 1; i <= seasons; i++)
+            {
+                Directory.CreateDirectory(Path.Combine(newPath, $"Season {i}"));
+            }
+
+            return newPath;
+        }
+
         [AllowAnonymous]
         [HttpPost]
         [Route("log")]
@@ -179,7 +198,7 @@ namespace Luciarr.WebApi.Controllers
 
         private static Regex GetSeasonRegex(int seasonNumber)
         {
-            return new Regex("Season ?0?" + seasonNumber);
+            return new Regex($"Season 0?{seasonNumber}( .*)?$");
         }
 
         public class WebhookDownloadPayload
