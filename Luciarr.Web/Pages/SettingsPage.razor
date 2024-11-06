@@ -234,7 +234,6 @@
             _config.Providers.FirstOrDefault(x => x is SqliteConfigurationProvider)?.Load();
 
             _logger.LogInformation("Settings have been changed");
-            _logger.LogError(new Exception("Error occurred"), "This is an error");
 
             await ShowSuccessAlert("Settings saved successfully.");
         } 
@@ -271,13 +270,11 @@
         foreach (var oldSettings in _context.ConfigSettings.Where(x => x.Id.StartsWith(settingName + ":")))
         {
             _context.ConfigSettings.Remove(oldSettings);
-            Console.WriteLine("Removing " + oldSettings.Id);
         }
 
         for (int i = 0; i < values.Count; i++)
         {
             _context.ConfigSettings.Add(new ConfigSetting($"{settingName}:{i}", values[i]?.ToString()));
-            Console.WriteLine("Adding " + $"{settingName}:{i}");
         }
     }
 
