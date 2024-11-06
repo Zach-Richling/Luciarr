@@ -5,6 +5,8 @@ VisualStudioVersion = 17.8.34322.80
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Luciarr.WebApi", "Luciarr.WebApi\Luciarr.WebApi.csproj", "{FE85F4A3-8382-4590-B3BF-F596B3055D67}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Luciarr.Web", "Luciarr.Web\Luciarr.Web.csproj", "{B01ED523-7354-480B-9667-4C516C920EDB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{FE85F4A3-8382-4590-B3BF-F596B3055D67}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE85F4A3-8382-4590-B3BF-F596B3055D67}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FE85F4A3-8382-4590-B3BF-F596B3055D67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B01ED523-7354-480B-9667-4C516C920EDB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B01ED523-7354-480B-9667-4C516C920EDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B01ED523-7354-480B-9667-4C516C920EDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B01ED523-7354-480B-9667-4C516C920EDB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,298 @@
+﻿@page "/settings"
+
+@using Luciarr.WebApi.Models.Radarr
+@using Luciarr.WebApi.Models.Sonarr
+@using Luciarr.WebApi.Models
+@using Microsoft.Extensions.Options
+@using System.Text.Json;
+@using Luciarr.Web.Data
+
+@inject IOptionsSnapshot<AppSettings> _settingsSnapshot
+@inject IOptionsSnapshot<SonarrSettings> _sonarrSettingsSnapshot
+@inject IOptionsSnapshot<RadarrSettings> _radarrSettingsSnapshot
+@inject IConfigurationRoot _config
+@inject SqliteDbContext _context
+@inject ILogger<SettingsPage> _logger
+
+<PageTitle>Settings</PageTitle>
+@if (showAlert) 
+{
+    <Alert Color="@alertColor">
+        <Icon Name="@alertIconName" class="me-2"></Icon> @alertMessage
+    </Alert>
+}
+
+<Accordion Class="mt-2">
+    <AccordionItem Title="Luciarr Settings" Active="true">
+        <Content>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="_luciarrSettings.AuthUsername" class="form-control" id="luciarrauthusername" />
+                <label for="luciarrauthusername">Luciarr API Username</label>
+            </div>
+
+            <div class="input-group mb-3">
+                <div class="form-floating">
+                    <InputText @bind-Value="_luciarrSettings.AuthPassword" id="luciarrapipassword" class="form-control" type="@luciarrAPIKeyType" />
+                    <label for="luciarrapipassword">Luciarr API Password</label>
+                </div>
+                <span class="input-group-text">
+                    <a role="button" title="Hide/Unhide" @onclick="ToggleLuciarrAPIKey">
+                        <Icon Name="@luciarrAPIKeyIcon" />
+                    </a>
+                </span>
+            </div>
+
+            <div class="input-group mb-3">
+                <div class="form-floating">
+                    <InputText @bind-Value="_luciarrSettings.TmdbAccessToken" id="tmdbaccesstoken" class="form-control" type="@tmdbAPIKeyType" />
+                    <label for="tmdbaccesstoken">Tmdb Access Token</label>
+                </div>
+                <span class="input-group-text">
+                    <a role="button" title="Hide/Unhide" @onclick="ToggleTmdbAPIKey">
+                        <Icon Name="@tmdbAPIKeyIcon" />
+                    </a>
+                </span>
+            </div>
+
+            <div class="mb-3">
+                <Switch @bind-Value="_luciarrSettings.TestMode" Label="Test Mode" />
+            </div>
+        </Content>
+    </AccordionItem>
+</Accordion>
+
+<Accordion Class="mt-2">
+    <AccordionItem Title="Sonarr Settings">
+        <Content>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="_sonarrSettings.SonarrAPIURL" class="form-control" id="sonarrapiurl" />
+                <label for="sonarrapiurl">Sonarr API URL</label>
+            </div>
+
+            <div class="input-group mb-3">
+                <div class="form-floating">
+                    <InputText @bind-Value="_sonarrSettings.SonarrAPIKey" id="sonarrapikey" class="form-control" type="@sonarrAPIKeyType" />
+                    <label for="sonarrapikey">Sonarr API Key</label>
+                </div>
+                <span class="input-group-text">
+                    <a role="button" title="Hide/Unhide" @onclick="ToggleSonarrAPIKey">
+                        <Icon Name="@sonarrAPIKeyIcon" />
+                    </a>
+                </span>
+            </div>
+
+            <div class="input-group mb-3">
+                <div class="form-floating">
+                    <InputText @bind-Value="IgnoreTvdbIdsView" id="ignoreivdbids" class="form-control" />
+                    <label for="ignoreivdbids">Ignore TvdbIds</label>
+                </div>
+                <span class="input-group-text">
+                    <a title="Comma separated list of numbers">
+                        <Icon Name="IconName.InfoCircle" />
+                    </a>
+                </span>
+            </div>
+        </Content>
+    </AccordionItem>
+</Accordion>
+
+<Accordion Class="mt-2">
+    <AccordionItem Title="Radarr Settings">
+        <Content>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="_radarrSettings.RadarrAPIURL" class="form-control" id="radarrapiurl" />
+                <label for="radarrapiurl">Radarr API URL</label>
+            </div>
+
+            <div class="input-group mb-3">
+                <div class="form-floating">
+                    <InputText @bind-Value="_radarrSettings.RadarrAPIKey" id="radarrapikey" class="form-control" type="@radarrAPIKeyType" />
+                    <label for="radarrapikey">Radarr API Key</label>
+                </div>
+                <span class="input-group-text">
+                    <a role="button" title="Hide/Unhide" @onclick="ToggleRadarrAPIKey">
+                        <Icon Name="@radarrAPIKeyIcon" />
+                    </a>
+                </span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="_radarrSettings.RootFolderName" class="form-control" id="radarrrootfolder" />
+                <label for="radarrrootfolder">Radarr Root Folder</label>
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="_radarrSettings.QualityProfileName" class="form-control" id="radarrqualityprofile" />
+                <label for="radarrqualityprofile">Radarr Quality Profile</label>
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="_radarrSettings.MinimumAvailability" class="form-control" id="radarrminimumavailability" />
+                <label for="radarrminimumavailability">Radarr Minimum Availability</label>
+            </div>
+
+            <div class="mb-3">
+                <Switch @bind-Value="_radarrSettings.SearchNewRequests" Label="Radarr Search New Requests"/>
+            </div>
+
+            <div class="mb-3">
+                <Switch @bind-Value="_radarrSettings.ImportNewMovies" Label="Radarr Import New Movies" />
+            </div>
+        </Content>
+    </AccordionItem>
+</Accordion>
+<Button Color="ButtonColor.Success" class="mt-2" @onclick="SaveSettings">Save</Button>
+
+@code 
+{
+    bool showAlert = false;
+    AlertColor alertColor = AlertColor.Primary;
+    IconName alertIconName = IconName.CheckCircleFill;
+    string alertMessage = "";
+
+    string sonarrAPIKeyType = "password";
+    IconName sonarrAPIKeyIcon = IconName.EyeSlash;
+
+    string radarrAPIKeyType = "password";
+    IconName radarrAPIKeyIcon = IconName.EyeSlash;
+
+    string luciarrAPIKeyType = "password";
+    IconName luciarrAPIKeyIcon = IconName.EyeSlash;
+
+    string tmdbAPIKeyType = "password";
+    IconName tmdbAPIKeyIcon = IconName.EyeSlash;
+
+    private SonarrSettings _sonarrSettings => _sonarrSettingsSnapshot.Value;
+    private RadarrSettings _radarrSettings => _radarrSettingsSnapshot.Value;
+    private AppSettings _luciarrSettings => _settingsSnapshot.Value;
+
+
+    public string IgnoreTvdbIdsView 
+    {
+        get 
+        {
+            return string.Join(", ", _sonarrSettings.IgnoreTvdbIds);
+        }
+        set
+        {
+            var values = value.Split(",").Where(x => int.TryParse(x, out _)).Select(x => int.Parse(x.Trim())).ToList();
+            _sonarrSettings.IgnoreTvdbIds = values;
+        }
+    }
+
+    public void ToggleSonarrAPIKey()
+    {
+        sonarrAPIKeyType = sonarrAPIKeyType == "password" ? "text" : "password";
+        sonarrAPIKeyIcon = sonarrAPIKeyIcon == IconName.EyeSlash ? IconName.Eye : IconName.EyeSlash;
+    }
+
+    public void ToggleRadarrAPIKey()
+    {
+        radarrAPIKeyType = radarrAPIKeyType == "password" ? "text" : "password";
+        radarrAPIKeyIcon = radarrAPIKeyIcon == IconName.EyeSlash ? IconName.Eye : IconName.EyeSlash;
+    }
+
+    public void ToggleLuciarrAPIKey()
+    {
+        luciarrAPIKeyType = luciarrAPIKeyType == "password" ? "text" : "password";
+        luciarrAPIKeyIcon = luciarrAPIKeyIcon == IconName.EyeSlash ? IconName.Eye : IconName.EyeSlash;
+    }
+
+    public void ToggleTmdbAPIKey()
+    {
+        tmdbAPIKeyType = tmdbAPIKeyType == "password" ? "text" : "password";
+        tmdbAPIKeyIcon = tmdbAPIKeyIcon == IconName.EyeSlash ? IconName.Eye : IconName.EyeSlash;
+    }
+
+    public async Task SaveSettings()
+    {
+        try
+        {
+            //Save Sonarr Settings
+            UpdateSettingList("SonarrSettings:IgnoreTvdbIds", _sonarrSettings.IgnoreTvdbIds);
+            UpdateSetting("SonarrSettings:SonarrAPIURL", _sonarrSettings.SonarrAPIURL);
+            UpdateSetting("SonarrSettings:SonarrAPIKey", _sonarrSettings.SonarrAPIKey);
+
+            //Save RadarrSettings
+            UpdateSetting("RadarrSettings:RadarrAPIURL", _radarrSettings.RadarrAPIURL);
+            UpdateSetting("RadarrSettings:RadarrAPIKey", _radarrSettings.RadarrAPIKey);
+            UpdateSetting("RadarrSettings:RootFolderName", _radarrSettings.RootFolderName);
+            UpdateSetting("RadarrSettings:QualityProfileName", _radarrSettings.QualityProfileName);
+            UpdateSetting("RadarrSettings:MinimumAvailability", _radarrSettings.MinimumAvailability);
+            UpdateSetting("RadarrSettings:SearchNewRequests", _radarrSettings.SearchNewRequests);
+            UpdateSetting("RadarrSettings:ImportNewMovies", _radarrSettings.ImportNewMovies);
+
+            //Save Luciarr Settings
+            UpdateSetting("LuciarrSettings:AuthUsername", _luciarrSettings.AuthUsername);
+            UpdateSetting("LuciarrSettings:AuthPassword", _luciarrSettings.AuthPassword);
+            UpdateSetting("LuciarrSettings:TmdbAccessToken", _luciarrSettings.TmdbAccessToken);
+            UpdateSetting("LuciarrSettings:TestMode", _luciarrSettings.TestMode);
+
+            await _context.SaveChangesAsync();
+
+            //Force configuration provider to reload settings since they have changed
+            _config.Providers.FirstOrDefault(x => x is SqliteConfigurationProvider)?.Load();
+
+            _logger.LogInformation("Settings have been changed");
+            _logger.LogError(new Exception("Error occurred"), "This is an error");
+
+            await ShowSuccessAlert("Settings saved successfully.");
+        } 
+        catch (Exception e)
+        {
+            ShowDangerAlert("An error occurred: " + e.Message);
+        }
+    }
+
+    private async Task ShowSuccessAlert(string message)
+    {
+        alertColor = AlertColor.Success;
+        alertIconName = IconName.CheckCircleFill;
+        alertMessage = message;
+
+        showAlert = true;
+        await Task.Delay(5000);
+        showAlert = false;
+
+        StateHasChanged();
+
+    }
+
+    private void ShowDangerAlert(string message)
+    {
+        alertColor = AlertColor.Danger;
+        alertIconName = IconName.ExclamationTriangleFill;
+        alertMessage = message;
+        showAlert = true;
+    }
+
+    private void UpdateSettingList<T>(string settingName, List<T> values)
+    {
+        foreach (var oldSettings in _context.ConfigSettings.Where(x => x.Id.StartsWith(settingName + ":")))
+        {
+            _context.ConfigSettings.Remove(oldSettings);
+            Console.WriteLine("Removing " + oldSettings.Id);
+        }
+
+        for (int i = 0; i < values.Count; i++)
+        {
+            _context.ConfigSettings.Add(new ConfigSetting($"{settingName}:{i}", values[i]?.ToString()));
+            Console.WriteLine("Adding " + $"{settingName}:{i}");
+        }
+    }
+
+    private void UpdateSetting<T>(string settingName, T value)
+    {
+        var setting = _context.ConfigSettings.Where(x => x.Id == settingName).FirstOrDefault();
+
+        if (setting == null)
+        {
+            _context.ConfigSettings.Add(new ConfigSetting(settingName, value?.ToString()));
+        } 
+        else
+        {
+            setting.Value = value?.ToString();
+            _context.ConfigSettings.Update(setting);
+        }
+    }
+}

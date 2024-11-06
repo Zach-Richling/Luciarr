@@ -9,7 +9,7 @@ namespace Luciarr.WebApi.Clients
     public class TmdbClient : ClientBase, IDisposable
     {
         private readonly HttpClient _httpClient;
-        public TmdbClient(IHttpClientFactory factory, IOptions<AppSettings> config)
+        public TmdbClient(IHttpClientFactory factory, IOptionsSnapshot<AppSettings> config)
         {
             var settings = config.Value;
 

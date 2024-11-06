@@ -8,8 +8,8 @@ using Luciarr.WebApi.Clients;
 using Luciarr.WebApi.Models.Radarr;
 using Coravel;
 using Luciarr.WebApi.Workers;
-using Luciarr.Models.Sonarr;
 using System.Reflection;
+using Luciarr.WebApi.Models.Sonarr;
 
 namespace Luciarr.WebApi
 {
@@ -30,9 +30,10 @@ namespace Luciarr.WebApi
             {
                 var version = Assembly.GetEntryAssembly()
                 ?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-                ?.InformationalVersion;
+                ?.InformationalVersion
+                ?.Split("+")
+                .First();
 
-                version = version?.Split("+").First();
                 Log.Information("Luciarr version: {Version}", version);
 
                 var builder = WebApplication.CreateBuilder(args);

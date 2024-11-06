@@ -4,11 +4,10 @@ using Microsoft.Extensions.Options;
 using Luciarr.WebApi.Clients;
 using Luciarr.WebApi.Models;
 using Luciarr.WebApi.Models.Sonarr;
-using System;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using AuthorizeAttribute = Luciarr.WebApi.Middleware.AuthorizeAttribute;
-using Luciarr.Models.Sonarr;
+using Microsoft.AspNetCore;
+using static Luciarr.WebApi.Controllers.SonarrController;
 
 namespace Luciarr.WebApi.Controllers
 {
@@ -21,11 +20,15 @@ namespace Luciarr.WebApi.Controllers
         private readonly SonarrClient _sonarrClient;
         private readonly SonarrSettings _sonarrSettings;
 
-        public SonarrController(SonarrClient sonarrClient, IOptions<SonarrSettings> sonarrSettings, ILogger<SonarrController> logger)
+        private readonly bool _testMode;
+
+        public SonarrController(SonarrClient sonarrClient, IOptionsSnapshot<SonarrSettings> sonarrSettings, IOptionsSnapshot<AppSettings> appSettings, ILogger<SonarrController> logger)
         {
             _logger = logger;
             _sonarrClient = sonarrClient;
             _sonarrSettings = sonarrSettings.Value;
+
+            _testMode = appSettings.Value.TestMode;
         }
 
         [HttpPost]
@@ -63,8 +66,10 @@ namespace Luciarr.WebApi.Controllers
                     return NotFound("Series could not be found");
                 }
 
-                //Uncomment for local testing
-                //series.Path = CreateSeriesFolder(series.Path, series.Seasons.Count);
+                if (_testMode) 
+                {
+                    series.Path = CreateSeriesFolder(series.Path, series.Seasons.Count);
+                }
 
                 if (!Path.Exists(series.Path))
                 {
@@ -176,6 +181,60 @@ namespace Luciarr.WebApi.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("unhide")]
+        public async Task<IActionResult> PostUnhideRequest([FromBody] UnhideRequest unhideRequest)
+        {
+            try
+            {
+                var series = await _sonarrClient.GetSeriesByTvdbId(unhideRequest.TvdbId);
+
+                if (series == null)
+                {
+                    return NotFound("Series could not be found.");
+                }
+
+                _logger.LogInformation("Processing unhide for {Name}", series.Title);
+
+                if (_testMode)
+                {
+                    series.Path = CreateSeriesFolder(series.Path, series.Seasons.Count);
+                }
+
+                if (!Path.Exists(series.Path))
+                {
+                    _logger.LogWarning("{Path} does not exist", series.Path);
+                    return BadRequest("Series path does not exist");
+                }
+
+                var seasonFolders = Directory.GetDirectories(series.Path);
+                
+                foreach (var folder in seasonFolders)
+                {
+                    var plexIgnoreFiles = Directory.GetFiles(folder).Where(x => Path.GetFileName(x) == ".plexignore");
+                    foreach (var plexIgnoreFile in plexIgnoreFiles)
+                    {
+                        try
+                        {
+                            _logger.LogInformation("Unhiding {FilePath}", plexIgnoreFile);
+                            System.IO.File.Delete(plexIgnoreFile);
+                        } 
+                        catch (Exception e)
+                        {
+                            _logger.LogError(e, "Could not delete file {FilePath}", plexIgnoreFiles);
+                        }
+                    }
+                }
+
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Exception: {Exception}", e);
+                throw;
+            }
+        }
+
         //Function for testing locally
         private string CreateSeriesFolder(string seriesPath, int seasons)
         {
@@ -213,6 +272,11 @@ namespace Luciarr.WebApi.Controllers
             return new Regex($"[S|s](eason)? ?0?{seasonNumber}( .*)?$");
         }
 
+        public class UnhideRequest
+        {
+            public int TvdbId { get; set; }
+        }
+
         public class WebhookDownloadPayload
         {
             public WebhookSeries Series { get; set; }
@@ -225,7 +289,7 @@ namespace Luciarr.WebApi.Controllers
             public int Id { get; set; }
             public string Title { get; set; }
             public string? TitleSlug { get; set; }
-            public string Path { get; set; }
+            public string? Path { get; set; }
             public int TvdbId { get; set; }
             public int? TvMazeId { get; set; }
             public int? TmdbId { get; set; }

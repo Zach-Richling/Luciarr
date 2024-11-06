@@ -1,0 +1,61 @@
+﻿@using Luciarr.WebApi.Models.Sonarr
+@using Luciarr.WebApi.Controllers
+
+@inject SonarrController _sonarrController
+
+@if (showAlert)
+{
+    <Alert Color="@alertColor">
+        <Icon Name="@alertIconName" class="me-2"></Icon> @alertMessage
+    </Alert>
+}
+
+<Button @onclick="OnRefresh" Color="ButtonColor.Success">Hide</Button>
+<Button @onclick="OnUnhide" Color="ButtonColor.Danger">Unhide</Button>
+
+@code {
+    [Parameter]
+    public SonarrSeries Series { get; set; }
+
+    bool showAlert = false;
+    AlertColor alertColor = AlertColor.Success;
+    IconName alertIconName = IconName.CheckCircleFill;
+    string alertMessage = "";
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+    private async Task OnRefresh()
+    {
+        await _sonarrController.PostDownloadWebhook(new SonarrController.WebhookDownloadPayload()
+        {
+            EventType = "Download",
+            Series = new SonarrController.WebhookSeries()
+            {
+                TvdbId = Series.TvdbId,
+                Title = Series.Title,
+                Year = Series.Year
+            },
+            Episodes = new List<SonarrController.WebhookEpisode>
+            {
+                new SonarrController.WebhookEpisode()
+                {
+                    SeasonNumber = 0,
+                    EpisodeNumber = 0
+                }
+            }
+        });
+
+        alertMessage = "Hiding Success!";
+        showAlert = true;
+    }
+
+    private async Task OnUnhide()
+    {
+        await _sonarrController.PostUnhideRequest(new SonarrController.UnhideRequest() { TvdbId = Series.TvdbId });
+        alertMessage = "Unhiding Success!";
+        showAlert = true;
+    }
+}

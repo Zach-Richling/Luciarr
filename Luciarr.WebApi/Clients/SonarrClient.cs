@@ -10,7 +10,7 @@ namespace Luciarr.WebApi.Clients
     {
         private readonly HttpClient _httpClient;
 
-        public SonarrClient(IHttpClientFactory factory, IOptions<AppSettings> config)
+        public SonarrClient(IHttpClientFactory factory, IOptionsSnapshot<SonarrSettings> config)
         {
             var settings = config.Value;
 
@@ -36,6 +36,18 @@ namespace Luciarr.WebApi.Clients
                 body,
                 JsonSettings
             )?.FirstOrDefault() ?? throw new Exception("Series could not be found");
+        }
+
+        public async Task<IEnumerable<SonarrSeries>> GetAllSeries()
+        {
+            var response = await _httpClient.GetAsync($"api/v3/series");
+            
+            response.EnsureSuccessStatusCode();
+
+            return JsonSerializer.Deserialize<List<SonarrSeries>>(
+                await response.Content.ReadAsStringAsync(),
+                JsonSettings
+            ) ?? new List<SonarrSeries>();
         }
 
         public async Task<List<SonarrEpisode>> GetSeasonEpisodesById(int seriesId, int seasonNumber)

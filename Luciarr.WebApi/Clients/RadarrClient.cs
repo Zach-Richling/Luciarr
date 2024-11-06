@@ -14,16 +14,14 @@ namespace Luciarr.WebApi.Clients
         public readonly RadarrSettings _settings;
         private readonly ILogger<RadarrClient> _logger;
 
-        public RadarrClient(IHttpClientFactory factory, IOptions<AppSettings> config, IOptions<RadarrSettings> radarrSettings, ILogger<RadarrClient> logger)
+        public RadarrClient(IHttpClientFactory factory, IOptionsSnapshot<RadarrSettings> radarrSettings, ILogger<RadarrClient> logger)
         {
-            var settings = config.Value;
-
-            _httpClient = factory.CreateClient();
-            _httpClient.DefaultRequestHeaders.Add("X-Api-Key", settings.RadarrAPIKey);
-            _httpClient.BaseAddress = new Uri(SanitizeUri(settings.RadarrAPIURL));
-
             _settings = radarrSettings.Value;
             _logger = logger;
+
+            _httpClient = factory.CreateClient();
+            _httpClient.DefaultRequestHeaders.Add("X-Api-Key", _settings.RadarrAPIKey);
+            _httpClient.BaseAddress = new Uri(SanitizeUri(_settings.RadarrAPIURL));
         }
 
         public async Task<RadarrMovie> LookupRadarrMovieByTmdbId(int tmdbId)

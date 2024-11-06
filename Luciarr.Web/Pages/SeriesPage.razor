@@ -1,0 +1,102 @@
+﻿@page "/series"
+
+@using Luciarr.WebApi.Clients
+@using Luciarr.WebApi.Models.Sonarr
+
+@inject SonarrClient _sonarrClient
+
+<PageTitle>Series</PageTitle>
+
+@if (Loading)
+{
+    <div class="d-flex justify-content-center">
+        <Spinner Color="SpinnerColor.Primary" />
+    </div>
+} 
+else 
+{
+    <AutoComplete 
+        @bind-Value="seriesName" 
+        TItem="SonarrSeries" 
+        DataProvider="SeriesDataProvider" 
+        PropertyName="Title" 
+        Placeholder="Search a series..." 
+        OnChanged="(SonarrSeries series) => OnAutoCompleteChanged(series)"
+        Class="mb-4" />
+
+    <div class="container-fluid justify-content-center" align="center">
+    <div class="row">
+            @foreach (var series in Series.Where(x => SelectedSeries == null || x.Equals(SelectedSeries)).OrderBy(x => x.Title))
+        {
+            var image = series.Images.Where(x => x.CoverType == "poster").FirstOrDefault();
+
+            <div class="col-sm">
+                    <Card Class="mb-4 hovercard" Style="width:18rem;" @onclick="() => OnShowModalClick(series)">
+                    <img class="rounded-top" src="@image?.RemoteUrl" />
+                    <CardBody>
+                        <CardTitle>@series.Title</CardTitle>
+                            <CardSubTitle Class="mb-2 text-muted">@series.Year</CardSubTitle>
+                    </CardBody>
+                </Card>
+            </div>
+        }
+    </div>
+</div>
+
+<Modal @ref="seriesModel" IsVerticallyCentered="true" />
+}
+@code {
+    public IEnumerable<SonarrSeries> Series = [];
+    public SonarrSeries? SelectedSeries = default!;
+    public bool Loading = true;
+
+    private Modal seriesModel = default!;
+
+    private string seriesName = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (!Series.Any())
+            {
+                Series = await _sonarrClient.GetAllSeries();
+            }
+        } 
+        catch (Exception e)
+        {
+
+        } 
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private async Task<AutoCompleteDataProviderResult<SonarrSeries>> SeriesDataProvider(AutoCompleteDataProviderRequest<SonarrSeries> request)
+    {
+        var filteredSeries = Series.Where(x => x.Title.Contains(request.Filter.Value));
+        return await Task.FromResult(new AutoCompleteDataProviderResult<SonarrSeries> 
+        { 
+            Data = filteredSeries,
+            TotalCount = filteredSeries.Count()
+        });
+    }
+
+    private void OnAutoCompleteChanged(SonarrSeries series)
+    {
+        SelectedSeries = series;
+    }
+
+    private async Task OnShowModalClick(SonarrSeries series)
+    {
+        var parameters = new Dictionary<string, object>();
+        parameters.Add("Series", series);
+        await seriesModel.ShowAsync<SeriesModal>(title: $"{series.Title} ({series.Year})", parameters: parameters);
+    }
+
+    private async Task OnHideModalClick()
+    {
+        await seriesModel.HideAsync();
+    }
+}

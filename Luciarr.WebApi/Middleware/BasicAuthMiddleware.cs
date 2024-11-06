@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Luciarr.WebApi.Middleware
 {
-    internal class BasicAuthMiddleware
+    public class BasicAuthMiddleware
     {
         private readonly RequestDelegate _next;
 
@@ -14,7 +14,7 @@ namespace Luciarr.WebApi.Middleware
             _next = next;
         }
 
-        public async Task Invoke(HttpContext context, IOptions<AppSettings> config, ILogger<BasicAuthMiddleware> logger)
+        public async Task Invoke(HttpContext context, IOptionsSnapshot<AppSettings> config)
         {
             try
             {

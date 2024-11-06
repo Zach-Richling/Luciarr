@@ -1,0 +1,83 @@
+﻿@page "/logs"
+
+@using Luciarr.Web.Data
+@using System.Text.Json
+
+@inject SqliteDbContext _context
+
+<PageTitle>Logs</PageTitle>
+
+<Grid TItem="LogView" Class="table table-hover" DataProvider="LogDataProvider" AllowPaging="true" AllowSorting="true" PageSize="15" Responsive="true">
+    <GridColumns>
+        <GridColumn TItem="LogView" HeaderText="Severity">
+            <span class="@context.SeverityClass" @onclick="() => OnServerityPillClick(context)">@context.LogRecord.Level</span>
+        </GridColumn>
+        <GridColumn TItem="LogView" HeaderText="Timestamp">
+            @context.LogRecord.Timestamp.ToLocalTime()
+        </GridColumn>
+        <GridColumn TItem="LogView" HeaderText="Source">
+            @context.SourceContext
+        </GridColumn>
+        <GridColumn TItem="LogView" HeaderText="Message">
+            @context.LogRecord.RenderedMessage.Replace("\"", "")
+        </GridColumn>
+    </GridColumns>
+</Grid>
+
+<Modal @ref="ErrorModal" IsVerticallyCentered="true" Size="ModalSize.ExtraLarge" />
+
+@code {
+    public IEnumerable<LogView> Logs = default!;
+
+    private Modal ErrorModal;
+
+    public async Task<GridDataProviderResult<LogView>> LogDataProvider(GridDataProviderRequest<LogView> request)
+    {
+        if (Logs == null)
+        {
+            Logs = _context.Logs.AsEnumerable().OrderByDescending(x => x.Timestamp).Select(x => new LogView(x));
+        }
+
+        return await Task.FromResult(request.ApplyTo(Logs));
+    }
+
+    public async Task OnServerityPillClick(LogView log)
+    {
+        if (log.LogRecord.Level == "Error")
+        {
+            var parameters = new Dictionary<string, object>()
+                {
+                    ["Log"] = log.LogRecord
+                };
+
+            await ErrorModal.ShowAsync<ExceptionModal>(
+                title: $"{log.SourceContext}: {log.LogRecord.Timestamp.ToLocalTime()}",
+                parameters: parameters
+            );
+        }
+    }
+
+    public class LogView
+    {
+        public LogView(Log log)
+        {
+            LogRecord = log;
+        }
+
+        public Log LogRecord { get; set; }
+        public string SourceContext => JsonSerializer.Deserialize<LogProperties>(LogRecord.Properties)?.SourceContext ?? "Unknown";
+        public string SeverityClass => LogRecord.Level switch
+        {
+            "Information" => "badge text-bg-secondary",
+            "Warning" => "badge text-bg-warning",
+            "Error" => "badge text-bg-danger",
+            "Fatal" => "badge text-bg-danger",
+            _ => "badge text-bg-secondary"
+        };
+    }
+
+    public class LogProperties
+    {
+        public string SourceContext { get; set; }
+    }
+}

@@ -1,0 +1,27 @@
+﻿@using System.Reflection;
+
+<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+    <a class="navbar-brand px-3" href="">
+        Luciarr 
+        <span class="badge text-bg-success">@version</span>
+    </a>
+    <ul class="navbar-nav nav-pills mr-auto">
+        <NavLink class="nav-item nav-link px-3" href="series">
+            <Icon Name="IconName.PlayCircle" class="me-2"></Icon> Series
+        </NavLink>
+        <NavLink class="nav-item nav-link px-3" href="logs">
+            <Icon Name="IconName.Clipboard" class="me-2"></Icon> Logs
+        </NavLink>
+        <NavLink class="nav-item nav-link px-3" href="settings">
+            <Icon Name="IconName.Gear" class="me-2"></Icon> Settings
+        </NavLink>
+    </ul>
+</nav>
+
+@code {
+    string version = "v" + (Assembly.GetEntryAssembly()
+        ?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+        ?.InformationalVersion
+        ?.Split("+")
+        .First() ?? "?");
+}
