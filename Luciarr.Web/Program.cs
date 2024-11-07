@@ -36,7 +36,7 @@ namespace Luciarr.Web
                 Serilog.Log.Information("Luciarr version: {Version}", version);
 
                 var sqlliteName = "luciarr.db";
-                var sqllitePath = Path.Combine(Path.Combine(AppContext.BaseDirectory, sqlliteName));
+                var sqllitePath = Path.Combine(AppContext.BaseDirectory, sqlliteName);
                 var sqliteConnString = $"Data Source={sqllitePath};Pooling=false";
 
                 var builder = WebApplication.CreateBuilder(args);
