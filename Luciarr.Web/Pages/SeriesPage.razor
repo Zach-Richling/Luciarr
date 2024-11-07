@@ -75,7 +75,7 @@ else
 
     private async Task<AutoCompleteDataProviderResult<SonarrSeries>> SeriesDataProvider(AutoCompleteDataProviderRequest<SonarrSeries> request)
     {
-        var filteredSeries = Series.Where(x => x.Title.Contains(request.Filter.Value));
+        var filteredSeries = Series.Where(x => x.Title.Contains(request.Filter.Value, StringComparison.OrdinalIgnoreCase));
         return await Task.FromResult(new AutoCompleteDataProviderResult<SonarrSeries> 
         { 
             Data = filteredSeries,

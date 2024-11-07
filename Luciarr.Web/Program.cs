@@ -121,7 +121,7 @@ namespace Luciarr.Web
 
                 app.Services.UseScheduler(x =>
                 {
-                    //x.Schedule<NewReleaseRequester>().Weekly().Sunday().RunOnceAtStart();
+                    x.Schedule<NewReleaseRequester>().Weekly().Sunday().RunOnceAtStart();
                 });
 
                 app.UseSwagger();
