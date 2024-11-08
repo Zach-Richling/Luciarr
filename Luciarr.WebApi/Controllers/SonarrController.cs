@@ -6,8 +6,6 @@ using Luciarr.WebApi.Models;
 using Luciarr.WebApi.Models.Sonarr;
 using System.Text.RegularExpressions;
 using AuthorizeAttribute = Luciarr.WebApi.Middleware.AuthorizeAttribute;
-using Microsoft.AspNetCore;
-using static Luciarr.WebApi.Controllers.SonarrController;
 
 namespace Luciarr.WebApi.Controllers
 {

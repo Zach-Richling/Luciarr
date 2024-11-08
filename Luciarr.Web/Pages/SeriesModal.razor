@@ -1,5 +1,6 @@
 ﻿@using Luciarr.WebApi.Models.Sonarr
 @using Luciarr.WebApi.Controllers
+@using Microsoft.AspNetCore.Mvc;
 
 @inject SonarrController _sonarrController
 
@@ -29,7 +30,7 @@
 
     private async Task OnRefresh()
     {
-        await _sonarrController.PostDownloadWebhook(new SonarrController.WebhookDownloadPayload()
+        var response = await _sonarrController.PostDownloadWebhook(new SonarrController.WebhookDownloadPayload()
         {
             EventType = "Download",
             Series = new SonarrController.WebhookSeries()
@@ -48,14 +49,39 @@
             }
         });
 
-        alertMessage = "Hiding Success!";
+        if (response is OkResult)
+        {
+            alertColor = AlertColor.Success;
+            alertIconName = IconName.CheckCircleFill;
+            alertMessage = "Hiding Success!";
+        } 
+        else
+        {
+            alertColor = AlertColor.Danger;
+            alertIconName = IconName.ExclamationTriangleFill;
+            alertMessage = "Something went wrong! Please check the logs.";
+        }
+
         showAlert = true;
     }
 
     private async Task OnUnhide()
     {
-        await _sonarrController.PostUnhideRequest(new SonarrController.UnhideRequest() { TvdbId = Series.TvdbId });
-        alertMessage = "Unhiding Success!";
+        var response = await _sonarrController.PostUnhideRequest(new SonarrController.UnhideRequest() { TvdbId = Series.TvdbId });
+
+        if (response is OkResult)
+        {
+            alertColor = AlertColor.Success;
+            alertIconName = IconName.CheckCircleFill;
+            alertMessage = "Unhiding Success!";
+        }
+        else
+        {
+            alertColor = AlertColor.Danger;
+            alertIconName = IconName.ExclamationTriangleFill;
+            alertMessage = "Something went wrong! Please check the logs.";
+        }
+
         showAlert = true;
     }
 }

@@ -64,9 +64,16 @@
 <Accordion Class="mt-2">
     <AccordionItem Title="Sonarr Settings">
         <Content>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="_sonarrSettings.SonarrAPIURL" class="form-control" id="sonarrapiurl" />
-                <label for="sonarrapiurl">Sonarr API URL</label>
+            <div class="input-group mb-3">
+                <span class="input-group-text">
+                    <a role="button" title="Toggle protocol" @onclick="ToggleSonarrAPIProtocol">
+                        <strong>@sonarrAPIUrlProtocol</strong>
+                    </a>
+                </span>
+                <div class="form-floating">
+                    <InputText @bind-Value="SonarrAPIURL" class="form-control" id="sonarrapiurl" />
+                    <label for="sonarrapiurl">Sonarr API URL</label>
+                </div>
             </div>
 
             <div class="input-group mb-3">
@@ -99,9 +106,16 @@
 <Accordion Class="mt-2">
     <AccordionItem Title="Radarr Settings">
         <Content>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="_radarrSettings.RadarrAPIURL" class="form-control" id="radarrapiurl" />
-                <label for="radarrapiurl">Radarr API URL</label>
+            <div class="input-group mb-3">
+                <span class="input-group-text">
+                    <a role="button" title="Toggle protocol" @onclick="ToggleRadarrAPIProtocol">
+                        <strong>@radarrAPIUrlProtocol</strong>
+                    </a>
+                </span>
+                <div class="form-floating">
+                    <InputText @bind-Value="RadarrAPIURL" class="form-control" id="radarrapiurl" />
+                    <label for="radarrapiurl">Radarr API URL</label>
+                </div>
             </div>
 
             <div class="input-group mb-3">
@@ -180,16 +194,55 @@
         }
     }
 
+
+    private string sonarrAPIUrlProtocol = "http://";
+
+    public string SonarrAPIURL
+    {
+        get
+        {
+            return _sonarrSettings.SonarrAPIURL.Split("//", 2).LastOrDefault() ?? "";    
+        }
+        set
+        {
+            _sonarrSettings.SonarrAPIURL = value;
+        }
+    }
+
+    private string radarrAPIUrlProtocol = "http://";
+
+    public string RadarrAPIURL
+    {
+        get
+        {
+            return _radarrSettings.RadarrAPIURL.Split("//", 2).LastOrDefault() ?? "";
+        }
+        set
+        {
+            _radarrSettings.RadarrAPIURL = value;
+        }
+    }
+
     public void ToggleSonarrAPIKey()
     {
         sonarrAPIKeyType = sonarrAPIKeyType == "password" ? "text" : "password";
         sonarrAPIKeyIcon = sonarrAPIKeyIcon == IconName.EyeSlash ? IconName.Eye : IconName.EyeSlash;
     }
 
+    private void ToggleSonarrAPIProtocol()
+    {
+        sonarrAPIUrlProtocol = sonarrAPIUrlProtocol == "http://" ? "https://" : "http://";
+    }
+
     public void ToggleRadarrAPIKey()
     {
         radarrAPIKeyType = radarrAPIKeyType == "password" ? "text" : "password";
         radarrAPIKeyIcon = radarrAPIKeyIcon == IconName.EyeSlash ? IconName.Eye : IconName.EyeSlash;
+    }
+
+    private void ToggleRadarrAPIProtocol()
+    {
+        radarrAPIUrlProtocol = radarrAPIUrlProtocol == "http://" ? "https://" : "http://";
     }
 
     public void ToggleLuciarrAPIKey()
@@ -210,11 +263,11 @@
         {
             //Save Sonarr Settings
             UpdateSettingList("SonarrSettings:IgnoreTvdbIds", _sonarrSettings.IgnoreTvdbIds);
-            UpdateSetting("SonarrSettings:SonarrAPIURL", _sonarrSettings.SonarrAPIURL);
+            UpdateSetting("SonarrSettings:SonarrAPIURL", sonarrAPIUrlProtocol + SonarrAPIURL);
             UpdateSetting("SonarrSettings:SonarrAPIKey", _sonarrSettings.SonarrAPIKey);
 
             //Save RadarrSettings
-            UpdateSetting("RadarrSettings:RadarrAPIURL", _radarrSettings.RadarrAPIURL);
+            UpdateSetting("RadarrSettings:RadarrAPIURL", radarrAPIUrlProtocol + RadarrAPIURL);
             UpdateSetting("RadarrSettings:RadarrAPIKey", _radarrSettings.RadarrAPIKey);
             UpdateSetting("RadarrSettings:RootFolderName", _radarrSettings.RootFolderName);
             UpdateSetting("RadarrSettings:QualityProfileName", _radarrSettings.QualityProfileName);
@@ -291,5 +344,13 @@
             setting.Value = value?.ToString();
             _context.ConfigSettings.Update(setting);
         }
+    }
+
+    protected override void OnInitialized()
+    {
+        sonarrAPIUrlProtocol = (_sonarrSettings.SonarrAPIURL.Split("//", 2).FirstOrDefault() ?? "http:") + "//";
+        radarrAPIUrlProtocol = (_radarrSettings.RadarrAPIURL.Split("//", 2).FirstOrDefault() ?? "http:") + "//";
+
+        base.OnInitialized();
     }
 }
