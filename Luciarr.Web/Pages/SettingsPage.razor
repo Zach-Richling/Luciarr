@@ -201,7 +201,7 @@
     {
         get
         {
-            return _sonarrSettings.SonarrAPIURL.Split("//", 2).LastOrDefault() ?? "";    
+            return _sonarrSettings.SonarrAPIURL?.Split("//", 2).LastOrDefault() ?? "";    
         }
         set
         {
@@ -215,7 +215,7 @@
     {
         get
         {
-            return _radarrSettings.RadarrAPIURL.Split("//", 2).LastOrDefault() ?? "";
+            return _radarrSettings.RadarrAPIURL?.Split("//", 2).LastOrDefault() ?? "";
         }
         set
         {
@@ -348,8 +348,18 @@
 
     protected override void OnInitialized()
     {
-        sonarrAPIUrlProtocol = (_sonarrSettings.SonarrAPIURL.Split("//", 2).FirstOrDefault() ?? "http:") + "//";
-        radarrAPIUrlProtocol = (_radarrSettings.RadarrAPIURL.Split("//", 2).FirstOrDefault() ?? "http:") + "//";
+        sonarrAPIUrlProtocol = (_sonarrSettings.SonarrAPIURL?.Split("//", 2).FirstOrDefault() ?? "http:") + "//";
+        radarrAPIUrlProtocol = (_radarrSettings.RadarrAPIURL?.Split("//", 2).FirstOrDefault() ?? "http:") + "//";
+
+        if (sonarrAPIUrlProtocol != "http://" && sonarrAPIUrlProtocol != "https://")
+        {
+            sonarrAPIUrlProtocol = "http://";
+        }
+
+        if (radarrAPIUrlProtocol != "http://" && radarrAPIUrlProtocol != "https://")
+        {
+            radarrAPIUrlProtocol = "http://";
+        }
 
         base.OnInitialized();
     }
