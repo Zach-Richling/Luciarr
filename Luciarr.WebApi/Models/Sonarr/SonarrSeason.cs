@@ -8,6 +8,6 @@ namespace Luciarr.WebApi.Models.Sonarr
         public int SeasonNumber { get; set; }
 
         [JsonPropertyName("statistics")]
-        public SonarrSeasonStatistics Statistics { get; set; }
+        public SonarrStatistics Statistics { get; set; }
     }
 }

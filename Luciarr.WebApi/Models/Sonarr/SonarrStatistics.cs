@@ -2,7 +2,7 @@
 
 namespace Luciarr.WebApi.Models.Sonarr
 {
-    public class SonarrSeasonStatistics
+    public class SonarrStatistics
     {
         public int EpisodeCount { get; set; }
         public int TotalEpisodeCount { get; set; }

@@ -10,13 +10,36 @@
         <Icon Name="@alertIconName" class="me-2"></Icon> @alertMessage
     </Alert>
 }
+Overall
+<div class="progress" role="progressbar">
+    <div class="progress-bar bg-warning text-dark @SeriesClasses" style="width: @SeriesDownloadPercent">@SeriesDownloadPercent</div>
+</div>
 
-<Button @onclick="OnRefresh" Color="ButtonColor.Success">Hide</Button>
-<Button @onclick="OnUnhide" Color="ButtonColor.Danger">Unhide</Button>
+@foreach (var season in Series.Seasons.Where(x => x.SeasonNumber != 0).OrderBy(x => x.SeasonNumber))
+{
+    var barColor = season.Statistics.PercentOfEpisodes != 100 ? "bg-primary" : "bg-success";
+    var seasonPercent = Math.Round(season.Statistics.PercentOfEpisodes) + "%";
+    var seasonText = $"Season {season.SeasonNumber}";
+    var finishedClass = season.Statistics.PercentOfEpisodes != 100 ? "progress-bar-striped progress-bar-animated" : "progress-bar-striped";
+
+    <div class="mt-2">@seasonText</div>
+    <div class="progress" role="progressbar">
+        <div class="progress-bar @barColor @finishedClass" style="width: @seasonPercent">@seasonPercent</div>
+    </div>
+}
+<hr/>
+<div class="mt-2">
+    <Button @onclick="OnRefresh" Color="ButtonColor.Success">Hide</Button>
+    <Button @onclick="OnUnhide" Color="ButtonColor.Danger">Unhide</Button>
+</div>
 
 @code {
     [Parameter]
     public SonarrSeries Series { get; set; }
+
+    public string SeriesDownloadPercent => Math.Round(Series.Statistics.PercentOfEpisodes) + "%";
+    public string SeriesBarColor => Series.Statistics.PercentOfEpisodes != 100 ? "bg-primary" : "bg-success";
+    public string SeriesClasses => Series.Statistics.PercentOfEpisodes != 100 ? "progress-bar-striped progress-bar-animated" : "progress-bar-striped";
 
     bool showAlert = false;
     AlertColor alertColor = AlertColor.Success;

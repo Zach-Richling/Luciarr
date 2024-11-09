@@ -26,19 +26,19 @@ else
 
     <div class="container-fluid justify-content-center" align="center">
     <div class="row">
-            @foreach (var series in Series.Where(x => SelectedSeries == null || x.Equals(SelectedSeries)).OrderBy(x => x.Title))
+        @foreach (var series in Series.Where(x => SelectedSeries == null || x.Equals(SelectedSeries)).OrderBy(x => x.Title))
         {
-            var image = series.Images.Where(x => x.CoverType == "poster").FirstOrDefault();
+        var image = series.Images.Where(x => x.CoverType == "poster").FirstOrDefault();
 
-            <div class="col-sm">
-                    <Card Class="mb-4 hovercard" Style="width:18rem;" @onclick="() => OnShowModalClick(series)">
-                    <img class="rounded-top" src="@image?.RemoteUrl" />
-                    <CardBody>
-                        <CardTitle>@series.Title</CardTitle>
-                            <CardSubTitle Class="mb-2 text-muted">@series.Year</CardSubTitle>
-                    </CardBody>
-                </Card>
-            </div>
+        <div class="col-sm">
+                <Card Class="mb-4 hovercard" Style="width:18rem;" @onclick="() => OnShowModalClick(series)">
+                <img class="rounded-top" src="@image?.RemoteUrl" />
+                <CardBody>
+                    <CardTitle>@series.Title</CardTitle>
+                        <CardSubTitle Class="mb-2 text-muted">@series.Year</CardSubTitle>
+                </CardBody>
+            </Card>
+        </div>
         }
     </div>
 </div>

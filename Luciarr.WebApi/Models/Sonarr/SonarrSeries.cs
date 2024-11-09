@@ -17,5 +17,6 @@ namespace Luciarr.WebApi.Models.Sonarr
         public List<SonarrImage> Images { get; set; } = new List<SonarrImage>();
         public string Path { get; set; }
         public int Year { get; set; }
+        public SonarrStatistics Statistics { get; set; }
     }
 }
