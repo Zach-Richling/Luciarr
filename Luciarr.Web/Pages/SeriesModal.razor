@@ -8,6 +8,14 @@
 {
     <Alert Color="@alertColor">
         <Icon Name="@alertIconName" class="me-2"></Icon> @alertMessage
+        @if (responseMessages.Any())
+        {
+            <hr />
+            @foreach(var message in responseMessages)
+            {
+                <p>@message</p>
+            }
+        }
     </Alert>
 }
 Overall
@@ -29,8 +37,26 @@ Overall
 }
 <hr/>
 <div class="mt-2">
-    <Button @onclick="OnRefresh" Color="ButtonColor.Success">Hide</Button>
-    <Button @onclick="OnUnhide" Color="ButtonColor.Danger">Unhide</Button>
+    <Button @onclick="OnRefresh" Color="ButtonColor.Primary" Class="@disableButtons">
+        @if (refreshing)
+        {
+            <Spinner Size="SpinnerSize.Small" Type="SpinnerType.Dots"/>
+        } 
+        else
+        {
+            <div>Hide</div>
+        }
+    </Button>
+    <Button @onclick="OnUnhide" Color="ButtonColor.Secondary" Class="@disableButtons">
+        @if (unhiding)
+        {
+            <Spinner Size="SpinnerSize.Small" Type="SpinnerType.Dots" />
+        }
+        else
+        {
+            <div>Unhide</div>
+        }
+    </Button>
 </div>
 
 @code {
@@ -45,6 +71,12 @@ Overall
     AlertColor alertColor = AlertColor.Success;
     IconName alertIconName = IconName.CheckCircleFill;
     string alertMessage = "";
+    List<string> responseMessages = new List<string>();
+
+    public bool refreshing = false;
+    public bool unhiding = false;
+    public bool actionLoading => refreshing || unhiding;
+    public string disableButtons => actionLoading ? "disabled" : "";
 
     protected override void OnInitialized()
     {
@@ -53,6 +85,8 @@ Overall
 
     private async Task OnRefresh()
     {
+        refreshing = true;
+
         var response = await _sonarrController.PostDownloadWebhook(new SonarrController.WebhookDownloadPayload()
         {
             EventType = "Download",
@@ -72,39 +106,70 @@ Overall
             }
         });
 
-        if (response is OkResult)
+        if (response.Result is ObjectResult objectResult && objectResult.Value is SonarrController.MessageResult messageResult)
         {
-            alertColor = AlertColor.Success;
-            alertIconName = IconName.CheckCircleFill;
-            alertMessage = "Hiding Success!";
+            responseMessages = messageResult.Messages;
+        }
+
+        if (response.Result is OkObjectResult)
+        {
+            if (responseMessages.Any())
+            {
+                alertColor = AlertColor.Success;
+                alertIconName = IconName.CheckCircleFill;
+                alertMessage = "Hiding Success!";
+            } 
+            else
+            {
+                alertColor = AlertColor.Info;
+                alertIconName = IconName.InfoCircleFill;
+                alertMessage = "No action needed!";
+            }
         } 
         else
         {
             alertColor = AlertColor.Danger;
             alertIconName = IconName.ExclamationTriangleFill;
-            alertMessage = "Something went wrong! Please check the logs.";
+            alertMessage = "Something went wrong!";
         }
 
         showAlert = true;
+        refreshing = false;
     }
 
     private async Task OnUnhide()
     {
+        unhiding = true;
         var response = await _sonarrController.PostUnhideRequest(new SonarrController.UnhideRequest() { TvdbId = Series.TvdbId });
 
-        if (response is OkResult)
+        if (response.Result is ObjectResult objectResult && objectResult.Value is SonarrController.MessageResult messageResult)
         {
-            alertColor = AlertColor.Success;
-            alertIconName = IconName.CheckCircleFill;
-            alertMessage = "Unhiding Success!";
+            responseMessages = messageResult.Messages;
+        }
+
+        if (response.Result is OkObjectResult)
+        {
+            if (responseMessages.Any())
+            {
+                alertColor = AlertColor.Success;
+                alertIconName = IconName.CheckCircleFill;
+                alertMessage = "Unhiding Success!";
+            }
+            else
+            {
+                alertColor = AlertColor.Info;
+                alertIconName = IconName.InfoCircleFill;
+                alertMessage = "No action needed!";
+            }
         }
         else
         {
             alertColor = AlertColor.Danger;
             alertIconName = IconName.ExclamationTriangleFill;
-            alertMessage = "Something went wrong! Please check the logs.";
+            alertMessage = "Something went wrong!";
         }
 
         showAlert = true;
+        unhiding = false;
     }
 }

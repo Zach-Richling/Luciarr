@@ -6,6 +6,11 @@ using Luciarr.WebApi.Models;
 using Luciarr.WebApi.Models.Sonarr;
 using System.Text.RegularExpressions;
 using AuthorizeAttribute = Luciarr.WebApi.Middleware.AuthorizeAttribute;
+using static Luciarr.WebApi.Controllers.SonarrController;
+using System.Text.Json.Serialization;
+using Serilog.Parsing;
+using Serilog.Formatting.Display;
+using System.Text;
 
 namespace Luciarr.WebApi.Controllers
 {
@@ -31,20 +36,25 @@ namespace Luciarr.WebApi.Controllers
 
         [HttpPost]
         [Route("downloaded")]
-        public async Task<IActionResult> PostDownloadWebhook([FromBody] WebhookDownloadPayload webhook)
+        public async Task<ActionResult<MessageResult>> PostDownloadWebhook([FromBody] WebhookDownloadPayload webhook)
         {
+            var processingMessages = new List<string>();
+
             if (webhook.EventType != "Download")
             {
                 if (webhook.EventType == "Test")
                 {
-                    return Ok();
+                    AccumulateAndLog(processingMessages, LogLevel.Information, "{Message}", "Good test!");
+                    return Ok(new MessageResult(processingMessages));
                 }
 
-                return BadRequest("Only downloaded events are accepted.");
+                AccumulateAndLog(processingMessages, LogLevel.Warning, "{Message}", "Only downloaded events are accepted.");
+                return BadRequest(new MessageResult(processingMessages));
             } 
             else if (_sonarrSettings.IgnoreTvdbIds.Contains(webhook.Series.TvdbId))
             {
-                return Ok();
+                AccumulateAndLog(processingMessages, LogLevel.Information, "Series with TvdbId {TvdbId} ignored.", webhook.Series.TvdbId);
+                return Ok(new MessageResult(processingMessages));
             }
 
             var webhookSeries = webhook.Series;
@@ -61,7 +71,8 @@ namespace Luciarr.WebApi.Controllers
                 
                 if (series == null)
                 {
-                    return NotFound("Series could not be found");
+                    AccumulateAndLog(processingMessages, LogLevel.Warning, "Series with TvdbId {TvdbId} could not be found.", webhookSeries.TvdbId);
+                    return NotFound(new MessageResult(processingMessages));
                 }
 
                 if (_testMode) 
@@ -71,8 +82,8 @@ namespace Luciarr.WebApi.Controllers
 
                 if (!Path.Exists(series.Path))
                 {
-                    _logger.LogWarning("{Path} does not exist", series.Path);
-                    return BadRequest("Series path does not exist");
+                    AccumulateAndLog(processingMessages, LogLevel.Warning, "{Path} does not exist", series.Path);
+                    return BadRequest(new MessageResult(processingMessages));
                 }
 
                 var seasonFolders = Directory.GetDirectories(series.Path);
@@ -95,7 +106,7 @@ namespace Luciarr.WebApi.Controllers
                         } 
                         else if (seasonFolder == null)
                         {
-                            _logger.LogWarning("Could not find season folder for {Title}, S{Season}", series.Title, season.SeasonNumber);
+                            AccumulateAndLog(processingMessages, LogLevel.Warning, "Could not find season folder for {Title}, S{Season}", series.Title, season.SeasonNumber);
                             continue;
                         }
 
@@ -104,7 +115,7 @@ namespace Luciarr.WebApi.Controllers
                         {
                             if (System.IO.File.Exists(plexIgnorePath))
                             {
-                                _logger.LogInformation("Unhiding {Name}, S{SeasonNumber}", series.Title, season.SeasonNumber);
+                                AccumulateAndLog(processingMessages, LogLevel.Information, "Unhiding {Name}, S{SeasonNumber}", series.Title, season.SeasonNumber);
                                 System.IO.File.Delete(plexIgnorePath);
                             }
                         }
@@ -124,7 +135,7 @@ namespace Luciarr.WebApi.Controllers
                                 {
                                     if (!currentHidden.Contains("*")) 
                                     {
-                                        _logger.LogInformation("Hiding {Name}, S{SeasonNumber}", series.Title, season.SeasonNumber);
+                                        AccumulateAndLog(processingMessages, LogLevel.Information, "Hiding {Name}, S{SeasonNumber}", series.Title, season.SeasonNumber);
                                     }
                                     fileStream.WriteLine("*");
                                 }
@@ -138,7 +149,7 @@ namespace Luciarr.WebApi.Controllers
                                     {
                                         if (!string.IsNullOrEmpty(episode)) 
                                         {
-                                            _logger.LogInformation("Unhiding {Name}, S{SeasonNumber} {EpisodePath}", series.Title, season.SeasonNumber, episode);
+                                            AccumulateAndLog(processingMessages, LogLevel.Information, "Unhiding {Name}, S{SeasonNumber} {EpisodePath}", series.Title, season.SeasonNumber, episode);
                                         }
                                     }
 
@@ -147,7 +158,7 @@ namespace Luciarr.WebApi.Controllers
                                         var fileName = Path.GetFileName(episode.EpisodeFile!.Path);
                                         if (!currentHidden.Contains(fileName)) 
                                         {
-                                            _logger.LogInformation("Hiding {Name}, S{SeasonNumber}E{EpisodeNumber}", series.Title, episode.SeasonNumber, episode.EpisodeNumber);
+                                            AccumulateAndLog(processingMessages, LogLevel.Information, "Hiding {Name}, S{SeasonNumber}E{EpisodeNumber}", series.Title, episode.SeasonNumber, episode.EpisodeNumber);
                                         }
 
                                         fileStream.WriteLine(fileName);
@@ -166,30 +177,34 @@ namespace Luciarr.WebApi.Controllers
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("Exception: {Exception}", e);
+                        AccumulateAndLogError(processingMessages, e, "{Exception}", e.Message);
                     }
                 }
 
-                return Ok();
+                return Ok(new MessageResult(processingMessages));
             }
             catch (Exception e) 
             {
-                _logger.LogError("Exception: {Exception}", e);
-                throw;
+                AccumulateAndLogError(processingMessages, e, "{Exception}", e.Message);
             }
+
+            return StatusCode(500, new MessageResult(processingMessages));
         }
 
         [HttpPost]
         [Route("unhide")]
-        public async Task<IActionResult> PostUnhideRequest([FromBody] UnhideRequest unhideRequest)
+        public async Task<ActionResult<MessageResult>> PostUnhideRequest([FromBody] UnhideRequest unhideRequest)
         {
+            var processingMessages = new List<string>();
+
             try
             {
                 var series = await _sonarrClient.GetSeriesByTvdbId(unhideRequest.TvdbId);
 
                 if (series == null)
                 {
-                    return NotFound("Series could not be found.");
+                    AccumulateAndLog(processingMessages, LogLevel.Warning, "Series with TvdbId {TvdbId} could not be found.", unhideRequest.TvdbId);
+                    return NotFound(new MessageResult(processingMessages));
                 }
 
                 _logger.LogInformation("Processing unhide for {Name}", series.Title);
@@ -201,8 +216,8 @@ namespace Luciarr.WebApi.Controllers
 
                 if (!Path.Exists(series.Path))
                 {
-                    _logger.LogWarning("{Path} does not exist", series.Path);
-                    return BadRequest("Series path does not exist");
+                    AccumulateAndLog(processingMessages, LogLevel.Warning, "{Path} does not exist", series.Path);
+                    return BadRequest(new MessageResult(processingMessages));
                 }
 
                 var seasonFolders = Directory.GetDirectories(series.Path);
@@ -214,23 +229,24 @@ namespace Luciarr.WebApi.Controllers
                     {
                         try
                         {
-                            _logger.LogInformation("Unhiding {FilePath}", plexIgnoreFile);
+                            AccumulateAndLog(processingMessages, LogLevel.Information, "Unhiding {FilePath}", plexIgnoreFile);
                             System.IO.File.Delete(plexIgnoreFile);
                         } 
                         catch (Exception e)
                         {
-                            _logger.LogError(e, "Could not delete file {FilePath}", plexIgnoreFiles);
+                            AccumulateAndLogError(processingMessages, e, "Could not delete file {FilePath}", plexIgnoreFiles);
                         }
                     }
                 }
 
-                return Ok();
+                return Ok(new MessageResult(processingMessages));
             }
             catch (Exception e)
             {
-                _logger.LogError("Exception: {Exception}", e);
-                throw;
+                AccumulateAndLogError(processingMessages, e, "{Exception}", e);
             }
+
+            return StatusCode(500, new MessageResult(processingMessages));
         }
 
         //Function for testing locally
@@ -239,7 +255,7 @@ namespace Luciarr.WebApi.Controllers
             var path = "C:\\Temp";
             var folderName = new DirectoryInfo(seriesPath).Name;
             var newPath = Path.Combine(path, folderName);
-            Directory.CreateDirectory(newPath);
+
             for (int i = 1; i <= seasons; i++)
             {
                 Directory.CreateDirectory(Path.Combine(newPath, $"Season {i}"));
@@ -248,26 +264,39 @@ namespace Luciarr.WebApi.Controllers
             return newPath;
         }
 
-        [AllowAnonymous]
-        [HttpPost]
-        [Route("log")]
-        public async Task<IActionResult> PostDownloadWebhookForLogging()
-        {
-            try
-            {
-                string result = await new StreamReader(Request.Body).ReadToEndAsync();
-                _logger.LogInformation("{Payload}", result);
-            } 
-            catch (Exception e)
-            {
-                _logger.LogError("Error: {Exception}", e);
-            }
-            return Ok();
-        }
-
         private static Regex GetSeasonRegex(int seasonNumber)
         {
             return new Regex($"[S|s](eason)? ?0?{seasonNumber}( .*)?$");
+        }
+
+        private void AccumulateAndLog(List<string> messages, LogLevel severity, string message, params object?[] args)
+        {
+            _logger.Log(severity, message, args);
+            messages.Add(SerilogFormatString(message, args));
+        }
+
+        private void AccumulateAndLogError(List<string> messages, Exception exception, string message, params object?[] args)
+        {
+            _logger.LogError(exception, message, args);
+            messages.Add(SerilogFormatString(message, args));
+        }
+
+        private static string SerilogFormatString(string input, params object?[] args)
+        {
+            var parser = new MessageTemplateParser();
+            var template = parser.Parse(input);
+            var format = new StringBuilder();
+            var index = 0;
+
+            foreach (var tok in template.Tokens)
+            {
+                if (tok is TextToken)
+                    format.Append(tok);
+                else
+                    format.Append("{" + index++ + "}");
+            }
+            
+            return string.Format(format.ToString(), args);
         }
 
         public class UnhideRequest
@@ -299,6 +328,22 @@ namespace Luciarr.WebApi.Controllers
         {
             public int SeasonNumber { get; set; }
             public int EpisodeNumber { get; set; }
+        }
+
+        public class MessageResult
+        {
+            public MessageResult()
+            {
+                
+            }
+
+            public MessageResult(List<string> messages)
+            {
+                Messages = messages;
+            }
+
+            [JsonPropertyName("messages")]
+            public List<string> Messages { get; set; } = new List<string>();
         }
     }
 }
