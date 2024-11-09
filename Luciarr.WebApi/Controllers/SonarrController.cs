@@ -134,7 +134,7 @@ namespace Luciarr.WebApi.Controllers
                                     var firstMissingEpisode = episodes.Where(x => !x.HasFile).Select(x => (int?)x.EpisodeNumber).Min();
 
                                     var filteredEpisodes = episodes.Where(x => x.EpisodeNumber >= firstMissingEpisode && !string.IsNullOrEmpty(x.EpisodeFile?.Path));
-                                    foreach (var episode in currentHidden.Except(filteredEpisodes.Select(x => x.EpisodeFile?.Path)))
+                                    foreach (var episode in currentHidden.Except(filteredEpisodes.Select(x => Path.GetFileName(x.EpisodeFile?.Path))))
                                     {
                                         if (!string.IsNullOrEmpty(episode)) 
                                         {
