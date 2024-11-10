@@ -1,8 +1,12 @@
 ﻿@using Luciarr.WebApi.Models.Sonarr
 @using Luciarr.WebApi.Controllers
 @using Microsoft.AspNetCore.Mvc;
+@using Luciarr.Web.Data
+@using Microsoft.Extensions.Options
 
 @inject SonarrController _sonarrController
+@inject IOptionsSnapshot<SonarrSettings> _sonarrSettingsSnapshot
+@inject SqliteDbContext _context
 
 @if (showAlert)
 {
@@ -37,17 +41,20 @@ Overall
 }
 <hr/>
 <div class="mt-2">
-    <Button @onclick="OnRefresh" Color="ButtonColor.Primary" Class="@disableButtons">
-        @if (refreshing)
-        {
-            <Spinner Size="SpinnerSize.Small" Type="SpinnerType.Dots"/>
-        } 
-        else
-        {
-            <div>Hide</div>
-        }
-    </Button>
-    <Button @onclick="OnUnhide" Color="ButtonColor.Secondary" Class="@disableButtons">
+    @if (!isIgnored)
+    {
+        <Button @onclick="OnRefresh" Color="ButtonColor.Primary" Disabled="@actionLoading" Class="me-1">
+            @if (refreshing)
+            {
+                <Spinner Size="SpinnerSize.Small" Type="SpinnerType.Dots"/>
+            } 
+            else
+            {
+                <div>Hide</div>
+            }
+        </Button>
+    }
+    <Button @onclick="OnUnhide" Color="ButtonColor.Primary" Disabled="@actionLoading">
         @if (unhiding)
         {
             <Spinner Size="SpinnerSize.Small" Type="SpinnerType.Dots" />
@@ -57,11 +64,23 @@ Overall
             <div>Unhide</div>
         }
     </Button>
+    <Button @onclick="OnIgnored" Color="@ignoredColor" Class="float-end" Disabled="@ignoring">
+        @if (ignoring)
+        {
+            <Spinner Size="SpinnerSize.Small" Type="SpinnerType.Dots" />
+        }
+        else
+        {
+            <div>@ignoredText</div>
+        }
+    </Button>
 </div>
 
 @code {
     [Parameter]
     public SonarrSeries Series { get; set; }
+
+    public SonarrSettings _sonarrSettings => _sonarrSettingsSnapshot.Value;
 
     public string SeriesDownloadPercent => Math.Round(Series.Statistics.PercentOfEpisodes) + "%";
     public string SeriesBarColor => Series.Statistics.PercentOfEpisodes != 100 ? "bg-primary" : "bg-success";
@@ -76,7 +95,12 @@ Overall
     public bool refreshing = false;
     public bool unhiding = false;
     public bool actionLoading => refreshing || unhiding;
-    public string disableButtons => actionLoading ? "disabled" : "";
+
+    public bool ignoring = false;
+    public bool isIgnored => _sonarrSettings.IgnoreTvdbIds.Contains(Series.TvdbId);
+    public ButtonColor ignoredColor => isIgnored ? ButtonColor.Danger : ButtonColor.Success;
+    public string ignoredText => isIgnored ? "Manual" : "Automatic";
+
 
     protected override void OnInitialized()
     {
@@ -85,6 +109,7 @@ Overall
 
     private async Task OnRefresh()
     {
+        showAlert = false;
         refreshing = true;
 
         var response = await _sonarrController.PostDownloadWebhook(new SonarrController.WebhookDownloadPayload()
@@ -139,6 +164,7 @@ Overall
 
     private async Task OnUnhide()
     {
+        showAlert = false;
         unhiding = true;
         var response = await _sonarrController.PostUnhideRequest(new SonarrController.UnhideRequest() { TvdbId = Series.TvdbId });
 
@@ -171,5 +197,51 @@ Overall
 
         showAlert = true;
         unhiding = false;
+    }
+
+    public async Task OnIgnored()
+    {
+        showAlert = false;
+        ignoring = true;
+        try
+        {
+            if (isIgnored)
+            {
+                _sonarrSettings.IgnoreTvdbIds.Remove(Series.TvdbId);
+            }
+            else
+            {
+                _sonarrSettings.IgnoreTvdbIds.Add(Series.TvdbId);
+            }
+
+            UpdateSettingList("SonarrSettings:IgnoreTvdbIds", _sonarrSettings.IgnoreTvdbIds);
+
+            await _context.SaveChangesAsync();
+        } 
+        catch (Exception e)
+        {
+            alertColor = AlertColor.Danger;
+            alertIconName = IconName.ExclamationTriangleFill;
+            alertMessage = "Something went wrong!";
+            responseMessages = new List<string>() { e.Message };
+            showAlert = true;
+        }
+        finally
+        {
+            ignoring = false;
+        }
+    }
+
+    private void UpdateSettingList<T>(string settingName, List<T> values)
+    {
+        foreach (var oldSettings in _context.ConfigSettings.Where(x => x.Id.StartsWith(settingName + ":")))
+        {
+            _context.ConfigSettings.Remove(oldSettings);
+        }
+
+        for (int i = 0; i < values.Count; i++)
+        {
+            _context.ConfigSettings.Add(new ConfigSetting($"{settingName}:{i}", values[i]?.ToString()));
+        }
     }
 }
