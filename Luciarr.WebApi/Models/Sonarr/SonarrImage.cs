@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Luciarr.Models.Sonarr
+namespace Luciarr.WebApi.Models.Sonarr
 {
     public class SonarrImage
     {

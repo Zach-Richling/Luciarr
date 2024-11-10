@@ -1,0 +1,42 @@
+﻿@page "/movies"
+
+@using Luciarr.WebApi.Clients
+@using Luciarr.WebApi.Models.Tmdb
+
+@inject TmdbClient client
+
+<div class="container-fluid justify-content-center" align="center">
+    <div class="row">
+        @foreach (var movie in Movies)
+        {
+            var image = $"https://media.themoviedb.org/t/p/w300_and_h450_bestv2{movie.PosterPath}";
+
+            <div class="col-sm">
+                <Card Class="mb-4 hovercard" Style="width:18rem;">
+                    <img class="rounded-top" src="@image" />
+                    <CardBody>
+                        <CardTitle>@movie.Title</CardTitle>
+                        <CardSubTitle Class="mb-2 text-muted">@movie.ReleaseDate.ToString("M/d/yyyy")</CardSubTitle>
+                    </CardBody>
+                    <Accordion>
+                            <AccordionItem Title="Overview" Class="rounded-top-0 border-0 border-top">
+                            <Content>
+                                @movie.Overview
+                        </Content>
+                    </AccordionItem>
+                    </Accordion>
+                </Card>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    private IEnumerable<TmdbMovie> Movies = new List<TmdbMovie>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Movies = await client.GetRecentlyReleasedMovies();
+    }
+}

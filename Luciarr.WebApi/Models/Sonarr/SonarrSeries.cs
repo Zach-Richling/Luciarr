@@ -1,7 +1,4 @@
-﻿using Luciarr.Models.Sonarr;
-using static Luciarr.WebApi.Controllers.SonarrController;
-
-namespace Luciarr.WebApi.Models.Sonarr
+﻿namespace Luciarr.WebApi.Models.Sonarr
 {
     public class SonarrSeries
     {

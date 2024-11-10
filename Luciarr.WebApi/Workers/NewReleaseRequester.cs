@@ -32,7 +32,7 @@ namespace Luciarr.WebApi.Workers
 
                 var newMovies = await _tmdbClient.GetRecentlyReleasedMovies();
 
-                foreach (var newMovie in newMovies.Take(10))
+                foreach (var newMovie in newMovies)
                 {
                     try
                     {
@@ -41,7 +41,7 @@ namespace Luciarr.WebApi.Workers
                         {
                             var movie = await _radarrClient.LookupRadarrMovieByTmdbId(newMovie.Id);
                             await _radarrClient.PostRadarrMovie(movie, rootFolder, qualityProfile);
-                            _logger.LogInformation("Requested {Title}({Year})", movie.Title, movie.Year);
+                            _logger.LogInformation("Requested {Title} ({Year})", movie.Title, movie.Year);
                         }
                     }
                     catch (Exception e)

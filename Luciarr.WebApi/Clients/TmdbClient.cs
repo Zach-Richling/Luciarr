@@ -18,7 +18,7 @@ namespace Luciarr.WebApi.Clients
             _httpClient.BaseAddress = new Uri("https://api.themoviedb.org/3/");
         }
 
-        public async Task<List<TmdbMovie>> GetRecentlyReleasedMovies()
+        public async Task<IEnumerable<TmdbMovie>> GetRecentlyReleasedMovies()
         {
             var parameters = new Dictionary<string, object>() 
             {
@@ -28,10 +28,11 @@ namespace Luciarr.WebApi.Clients
                 { "page", 1 },
                 { "sort_by", "popularity.desc" },
                 { "with_release_type", "2|3" },
-                { "release_date.gte", DateTime.Now.AddDays(14).ToString("yyyy-MM-dd") },
+                { "release_date.gte", DateTime.Now.AddDays(-14).ToString("yyyy-MM-dd") },
                 { "release_date.lte", DateTime.Now.ToString("yyyy-MM-dd") }
             };
 
+            var temp = "discover/movie" + QueryString(parameters);
             var response = await _httpClient.GetAsync("discover/movie" + QueryString(parameters));
             response.EnsureSuccessStatusCode();
 
@@ -49,7 +50,7 @@ namespace Luciarr.WebApi.Clients
         private class DiscoverMoviesWrapper 
         {
             [JsonPropertyName("results")]
-            public List<TmdbMovie> Movies { get; set; }
+            public IEnumerable<TmdbMovie> Movies { get; set; }
 
             public int Page { get; set; }
 

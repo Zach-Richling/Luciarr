@@ -24,7 +24,7 @@ else
         OnChanged="(SonarrSeries series) => OnAutoCompleteChanged(series)"
         Class="mb-4" />
 
-    <div class="container-fluid justify-content-center" align="center">
+<div class="container-fluid justify-content-center" align="center">
     <div class="row">
         @foreach (var series in Series.Where(x => SelectedSeries == null || x.Equals(SelectedSeries)).OrderBy(x => x.Title))
         {

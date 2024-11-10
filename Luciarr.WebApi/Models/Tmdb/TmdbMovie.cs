@@ -6,6 +6,13 @@ namespace Luciarr.WebApi.Models.Tmdb
     {
         public int Id { get; set; }
         public string Title { get; set; }
+
+        [JsonPropertyName("poster_path")]
+        public string PosterPath { get; set; }
+
+        [JsonPropertyName("overview")]
+        public string Overview { get; set; }
+
         [JsonPropertyName("release_date")]
         public DateTime ReleaseDate { get; set; }
         public double Popularity { get; set; }
