@@ -54,6 +54,12 @@
                 </span>
             </div>
 
+            <p>Feature Flags</p>
+
+            <div class="mb-3">
+                <Switch @bind-Value="_luciarrSettings.RequestMovies" Label="Request New Movies" />
+            </div>
+
             <div class="mb-3">
                 <Switch @bind-Value="_luciarrSettings.TestMode" Label="Test Mode" />
             </div>
@@ -279,6 +285,7 @@
             UpdateSetting("LuciarrSettings:AuthUsername", _luciarrSettings.AuthUsername);
             UpdateSetting("LuciarrSettings:AuthPassword", _luciarrSettings.AuthPassword);
             UpdateSetting("LuciarrSettings:TmdbAccessToken", _luciarrSettings.TmdbAccessToken);
+            UpdateSetting("LuciarrSettings:RequestMovies", _luciarrSettings.RequestMovies);
             UpdateSetting("LuciarrSettings:TestMode", _luciarrSettings.TestMode);
 
             await _context.SaveChangesAsync();

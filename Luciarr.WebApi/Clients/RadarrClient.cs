@@ -11,8 +11,10 @@ namespace Luciarr.WebApi.Clients
     public class RadarrClient : ClientBase, IDisposable
     {
         private readonly HttpClient _httpClient;
-        public readonly RadarrSettings _settings;
+        private readonly RadarrSettings _settings;
         private readonly ILogger<RadarrClient> _logger;
+
+        public readonly bool InvalidURI = false;
 
         public RadarrClient(IHttpClientFactory factory, IOptionsSnapshot<RadarrSettings> radarrSettings, ILogger<RadarrClient> logger)
         {
@@ -21,7 +23,15 @@ namespace Luciarr.WebApi.Clients
 
             _httpClient = factory.CreateClient();
             _httpClient.DefaultRequestHeaders.Add("X-Api-Key", _settings.RadarrAPIKey);
-            _httpClient.BaseAddress = new Uri(SanitizeUri(_settings.RadarrAPIURL));
+
+            try
+            {
+                _httpClient.BaseAddress = new Uri(SanitizeUri(_settings.RadarrAPIURL));
+            } 
+            catch (UriFormatException) 
+            {
+                InvalidURI = true;
+            }
         }
 
         public async Task<RadarrMovie> LookupRadarrMovieByTmdbId(int tmdbId)

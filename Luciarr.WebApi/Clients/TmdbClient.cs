@@ -9,6 +9,7 @@ namespace Luciarr.WebApi.Clients
     public class TmdbClient : ClientBase, IDisposable
     {
         private readonly HttpClient _httpClient;
+
         public TmdbClient(IHttpClientFactory factory, IOptionsSnapshot<AppSettings> config)
         {
             var settings = config.Value;
@@ -32,7 +33,6 @@ namespace Luciarr.WebApi.Clients
                 { "release_date.lte", DateTime.Now.ToString("yyyy-MM-dd") }
             };
 
-            var temp = "discover/movie" + QueryString(parameters);
             var response = await _httpClient.GetAsync("discover/movie" + QueryString(parameters));
             response.EnsureSuccessStatusCode();
 

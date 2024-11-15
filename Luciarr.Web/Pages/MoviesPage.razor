@@ -3,7 +3,25 @@
 @using Luciarr.WebApi.Clients
 @using Luciarr.WebApi.Models.Tmdb
 
-@inject TmdbClient client
+@inject TmdbClient tmdbClient
+@inject RadarrClient radarrClient
+@inject ILogger<MoviesPage> logger
+
+@if (radarrClient.InvalidURI) 
+{
+    <Alert Color="AlertColor.Warning">
+        <Icon Name="IconName.ExclamationTriangleFill"/>
+        Verify your Radarr configuration to use this functionality.
+    </Alert>
+}
+
+@if (TmdbError) 
+{
+    <Alert Color="AlertColor.Warning">
+        <Icon Name="IconName.ExclamationTriangleFill" />
+        Verify your Tmdb configuration to use this functionality.
+    </Alert>
+}
 
 <div class="container-fluid justify-content-center" align="center">
     <div class="row">
@@ -19,11 +37,11 @@
                         <CardSubTitle Class="mb-2 text-muted">@movie.ReleaseDate.ToString("M/d/yyyy")</CardSubTitle>
                     </CardBody>
                     <Accordion>
-                            <AccordionItem Title="Overview" Class="rounded-top-0 border-0 border-top">
+                        <AccordionItem Title="Overview" Class="rounded-top-0 border-0 border-top">
                             <Content>
                                 @movie.Overview
-                        </Content>
-                    </AccordionItem>
+                            </Content>
+                        </AccordionItem>
                     </Accordion>
                 </Card>
             </div>
@@ -35,8 +53,18 @@
 
     private IEnumerable<TmdbMovie> Movies = new List<TmdbMovie>();
 
+    private bool TmdbError = false;
+
     protected override async Task OnInitializedAsync()
     {
-        Movies = await client.GetRecentlyReleasedMovies();
+        try
+        {
+            Movies = await tmdbClient.GetRecentlyReleasedMovies();
+        } 
+        catch (Exception e)
+        {
+            TmdbError = true;
+            logger.LogError(e, "An error occured while requesting movies: {Exception}", e.Message);
+        }
     }
 }

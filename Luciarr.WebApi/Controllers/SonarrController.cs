@@ -129,7 +129,7 @@ namespace Luciarr.WebApi.Controllers
                                     currentHidden.AddRange(System.IO.File.ReadAllLines(plexIgnorePath));
                                 }
 
-                                using StreamWriter fileStream = new StreamWriter(System.IO.File.Create(plexIgnorePath));
+                                using var fileStream = new StreamWriter(System.IO.File.Create(plexIgnorePath));
 
                                 if (previousSeasonIncomplete)
                                 {

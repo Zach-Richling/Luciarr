@@ -10,13 +10,22 @@ namespace Luciarr.WebApi.Clients
     {
         private readonly HttpClient _httpClient;
 
+        public readonly bool InvalidURI = false;
+
         public SonarrClient(IHttpClientFactory factory, IOptionsSnapshot<SonarrSettings> config)
         {
             var settings = config.Value;
 
             _httpClient = factory.CreateClient();
             _httpClient.DefaultRequestHeaders.Add("X-Api-Key", settings.SonarrAPIKey);
-            _httpClient.BaseAddress = new Uri(SanitizeUri(settings.SonarrAPIURL));
+            try
+            {
+                _httpClient.BaseAddress = new Uri(SanitizeUri(settings.SonarrAPIURL));
+            }
+            catch (UriFormatException) 
+            { 
+                InvalidURI = true;
+            }
         }
 
         public async Task<SonarrSeries> GetSeriesByTvdbId(int tvdbId)

@@ -4,6 +4,7 @@
 @using Luciarr.WebApi.Models.Sonarr
 
 @inject SonarrClient _sonarrClient
+@inject ILogger<SeriesPage> _logger
 
 <PageTitle>Series</PageTitle>
 
@@ -13,59 +14,74 @@
         <Spinner Color="SpinnerColor.Primary" />
     </div>
 } 
+else if (_sonarrClient.InvalidURI)
+{
+    <Alert Color="AlertColor.Warning">
+        <Icon Name="IconName.ExclamationTriangleFill" />
+        Verify your Sonarr configuration to use this functionality.
+    </Alert>
+}
+else if (SonarrError || Series == null)
+{
+    <Alert Color="AlertColor.Danger">
+        <Icon Name="IconName.ExclamationTriangleFill" />
+        An error occurred while requesting series from Sonarr. Check the logs for more details!
+    </Alert>
+}
 else 
 {
     <AutoComplete 
-        @bind-Value="seriesName" 
-        TItem="SonarrSeries" 
-        DataProvider="SeriesDataProvider" 
-        PropertyName="Title" 
-        Placeholder="Search a series..." 
-        OnChanged="(SonarrSeries series) => OnAutoCompleteChanged(series)"
-        Class="mb-4" />
+    @bind-Value="seriesName" 
+    TItem="SonarrSeries" 
+    DataProvider="SeriesDataProvider" 
+    PropertyName="Title" 
+    Placeholder="Search a series..." 
+    OnChanged="(SonarrSeries series) => OnAutoCompleteChanged(series)"
+    Class="mb-4" />
 
-<div class="container-fluid justify-content-center" align="center">
-    <div class="row">
-        @foreach (var series in Series.Where(x => SelectedSeries == null || x.Equals(SelectedSeries)).OrderBy(x => x.Title))
-        {
-        var image = series.Images.Where(x => x.CoverType == "poster").FirstOrDefault();
+    <div class="container-fluid justify-content-center" align="center">
+        <div class="row">
+            @foreach (var series in Series.Where(x => SelectedSeries == null || x.Equals(SelectedSeries)).OrderBy(x => x.Title))
+            {
+                var image = series.Images.Where(x => x.CoverType == "poster").FirstOrDefault();
 
-        <div class="col-sm">
-                <Card Class="mb-4 hovercard" Style="width:18rem;" @onclick="() => OnShowModalClick(series)">
-                <img class="rounded-top" src="@image?.RemoteUrl" />
-                <CardBody>
-                    <CardTitle>@series.Title</CardTitle>
-                        <CardSubTitle Class="mb-2 text-muted">@series.Year</CardSubTitle>
-                </CardBody>
-            </Card>
+                <div class="col-sm">
+                    <Card Class="mb-4 hovercard" Style="width:18rem;" @onclick="() => OnShowModalClick(series)">
+                        <img class="rounded-top" src="@image?.RemoteUrl" />
+                        <CardBody>
+                            <CardTitle>@series.Title</CardTitle>
+                            <CardSubTitle Class="mb-2 text-muted">@series.Year</CardSubTitle>
+                        </CardBody>
+                    </Card>
+                </div>
+            }
         </div>
-        }
     </div>
-</div>
 
-<Modal @ref="seriesModel" IsVerticallyCentered="true" />
+    <Modal @ref="seriesModel" IsVerticallyCentered="true" />
 }
 @code {
-    public IEnumerable<SonarrSeries> Series = [];
+    public IEnumerable<SonarrSeries>? Series;
     public SonarrSeries? SelectedSeries = default!;
     public bool Loading = true;
 
     private Modal seriesModel = default!;
-
     private string seriesName = default!;
+    private bool SonarrError = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            if (!Series.Any())
+            if (Series == null)
             {
                 Series = await _sonarrClient.GetAllSeries();
             }
         } 
-        catch (Exception e)
+        catch (Exception e) 
         {
-
+            SonarrError = true;
+            _logger.LogError(e, "Error while requesting series: {Exception}", e.Message);
         } 
         finally
         {

@@ -1,6 +1,8 @@
 ﻿@using System.Reflection;
 
-<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+@inject NavigationManager navManager
+
+<nav class="navbar navbar-expand-md navbar-dark bg-dark-subtle position-relative">
     <a class="navbar-brand px-3" href="">
         Luciarr 
         <span class="badge text-bg-success">@version</span>
@@ -19,12 +21,26 @@
             <Icon Name="IconName.Gear" class="me-2"></Icon> Settings
         </NavLink>
     </ul>
+    @if (url == "movies")
+    {
+        <img src="tmdb.svg" class="position-absolute end-0 me-2" style="width:50px" />
+    }
 </nav>
 
 @code {
-    string version = "v" + (Assembly.GetEntryAssembly()
+    private string version = "v" + (Assembly.GetEntryAssembly()
         ?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
         ?.InformationalVersion
         ?.Split("+")
         .First() ?? "?");
+
+    public string url => navManager.ToBaseRelativePath(navManager.Uri);
+
+    protected override async Task OnInitializedAsync()
+    {
+        navManager.LocationChanged += OnPageChange;
+        await Task.CompletedTask;
+    }
+
+    private void OnPageChange(object? sender, LocationChangedEventArgs args) => StateHasChanged();
 }

@@ -12,6 +12,9 @@ namespace Luciarr.WebApi.Clients
 
         protected string SanitizeUri(string uri)
         {
+            if (uri == null) 
+                return "";
+
             return uri.EndsWith('/') ? uri : uri + "/";
         }
     }
