@@ -7,47 +7,56 @@
 @inject RadarrClient radarrClient
 @inject ILogger<MoviesPage> logger
 
-@if (radarrClient.InvalidURI) 
+@if (Loading)
 {
-    <Alert Color="AlertColor.Warning">
-        <Icon Name="IconName.ExclamationTriangleFill"/>
-        Verify your Radarr configuration to use this functionality.
-    </Alert>
-}
-
-@if (TmdbError) 
-{
-    <Alert Color="AlertColor.Warning">
-        <Icon Name="IconName.ExclamationTriangleFill" />
-        Verify your Tmdb configuration to use this functionality.
-    </Alert>
-}
-
-<div class="container-fluid justify-content-center" align="center">
-    <div class="row">
-        @foreach (var movie in Movies)
-        {
-            var image = $"https://media.themoviedb.org/t/p/w300_and_h450_bestv2{movie.PosterPath}";
-
-            <div class="col-sm">
-                <Card Class="mb-4 hovercard" Style="width:18rem;">
-                    <img class="rounded-top" src="@image" />
-                    <CardBody>
-                        <CardTitle>@movie.Title</CardTitle>
-                        <CardSubTitle Class="mb-2 text-muted">@movie.ReleaseDate.ToString("M/d/yyyy")</CardSubTitle>
-                    </CardBody>
-                    <Accordion>
-                        <AccordionItem Title="Overview" Class="rounded-top-0 border-0 border-top">
-                            <Content>
-                                @movie.Overview
-                            </Content>
-                        </AccordionItem>
-                    </Accordion>
-                </Card>
-            </div>
-        }
+    <div class="d-flex justify-content-center">
+        <Spinner Color="SpinnerColor.Primary" />
     </div>
-</div>
+} 
+else 
+{
+    @if (radarrClient.InvalidURI)
+    {
+        <Alert Color="AlertColor.Warning">
+            <Icon Name="IconName.ExclamationTriangleFill" />
+            Verify your Radarr configuration to use this functionality.
+        </Alert>
+    }
+
+    @if (TmdbError)
+    {
+        <Alert Color="AlertColor.Warning">
+            <Icon Name="IconName.ExclamationTriangleFill" />
+            Verify your Tmdb configuration to use this functionality.
+        </Alert>
+    }
+
+    <div class="container-fluid justify-content-center" align="center">
+        <div class="row">
+            @foreach (var movie in Movies)
+            {
+                var image = $"https://media.themoviedb.org/t/p/w300_and_h450_bestv2{movie.PosterPath}";
+
+                <div class="col-sm">
+                    <Card Class="mb-4 hovercard" Style="width:18rem;">
+                        <img class="rounded-top" src="@image" />
+                        <CardBody>
+                            <CardTitle>@movie.Title</CardTitle>
+                            <CardSubTitle Class="mb-2 text-muted">@movie.ReleaseDate.ToString("M/d/yyyy")</CardSubTitle>
+                        </CardBody>
+                        <Accordion>
+                            <AccordionItem Title="Overview" Class="rounded-top-0 border-0 border-top">
+                                <Content>
+                                    @movie.Overview
+                                </Content>
+                            </AccordionItem>
+                        </Accordion>
+                    </Card>
+                </div>
+            }
+        </div>
+    </div>
+}
 
 @code {
 
@@ -55,16 +64,23 @@
 
     private bool TmdbError = false;
 
+    public bool Loading = true;
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            Loading = true;
             Movies = await tmdbClient.GetRecentlyReleasedMovies();
         } 
         catch (Exception e)
         {
             TmdbError = true;
             logger.LogError(e, "An error occured while requesting movies: {Exception}", e.Message);
+        } 
+        finally 
+        {
+            Loading = false;
         }
     }
 }
