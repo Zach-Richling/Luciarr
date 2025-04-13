@@ -14,6 +14,7 @@
         public List<SonarrImage> Images { get; set; } = new List<SonarrImage>();
         public string Path { get; set; }
         public int Year { get; set; }
+        public bool Ended { get; set; }
         public SonarrStatistics Statistics { get; set; }
     }
 }

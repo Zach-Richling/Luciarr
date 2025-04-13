@@ -5,67 +5,56 @@ using Microsoft.Extensions.Options;
 
 namespace Luciarr.WebApi.Workers
 {
-    public class NewReleaseRequester : IInvocable
+    public class NewReleaseRequester(RadarrClient radarrClient, TmdbClient tmdbClient, IOptionsSnapshot<AppSettings> settings, ILogger<NewReleaseRequester> logger) : IInvocable
     {
-        private readonly RadarrClient _radarrClient;
-        private readonly TmdbClient _tmdbClient;
-        private readonly AppSettings _settings;
-        private readonly ILogger<NewReleaseRequester> _logger;
-
-        public NewReleaseRequester(RadarrClient client, TmdbClient tmdbClient, IOptionsSnapshot<AppSettings> settings, ILogger<NewReleaseRequester> logger)
-        {
-            _radarrClient = client;
-            _tmdbClient = tmdbClient;
-            _settings = settings.Value;
-            _logger = logger;
-        }
+        private readonly AppSettings settings = settings.Value;
 
         public async Task Invoke()
         {
             try
             {
-                if (!_settings.RequestMovies)
+                if (!settings.RequestMovies)
                 {
                     return;
                 }
 
-                _logger.LogInformation("Looking for new movies");
-                var qualityProfile = await _radarrClient.GetQualityProfile();
-                var rootFolder = await _radarrClient.GetRootFolder();
+                logger.LogInformation("Looking for new movies");
+                var qualityProfile = await radarrClient.GetQualityProfile();
+                var rootFolder = await radarrClient.GetRootFolder();
 
                 if (qualityProfile == null || rootFolder == null)
                 {
-                    _logger.LogWarning("Root folder or quality profile not found.");
+                    logger.LogWarning("Root folder or quality profile not found.");
                     return;
                 }
 
-                var newMovies = await _tmdbClient.GetRecentlyReleasedMovies();
+                var newMovies = await tmdbClient.GetRecentlyReleasedMovies();
 
                 foreach (var newMovie in newMovies)
                 {
                     try
                     {
-                        var movieCheck = await _radarrClient.GetRadarrMovieByTmdbId(newMovie.Id);
+                        var movieCheck = await radarrClient.GetRadarrMovieByTmdbId(newMovie.Id);
                         if (movieCheck == null)
                         {
-                            var movie = await _radarrClient.LookupRadarrMovieByTmdbId(newMovie.Id);
-                            await _radarrClient.PostRadarrMovie(movie, rootFolder, qualityProfile);
-                            _logger.LogInformation("Requested {Title} ({Year})", movie.Title, movie.Year);
+                            var movie = await radarrClient.LookupRadarrMovieByTmdbId(newMovie.Id);
+                            await radarrClient.PostRadarrMovie(movie, rootFolder, qualityProfile);
+                            logger.LogInformation("Requested {Title} ({Year})", movie.Title, movie.Year);
                         }
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError(e, "Error when requesting {Title}", newMovie.Title);
+                        logger.LogError(e, "Error when requesting {Title}", newMovie.Title);
                     }
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error when gathering new movies");
+                logger.LogError(e, "Error when gathering new movies");
             }
             finally 
             {
-                _logger.LogInformation("Finished looking for movies");
+                logger.LogInformation("Finished looking for movies");
             }
         }
     }

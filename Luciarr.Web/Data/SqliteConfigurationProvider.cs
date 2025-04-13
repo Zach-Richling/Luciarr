@@ -7,44 +7,42 @@ namespace Luciarr.Web.Data
 {
     public class SqliteConfigurationProvider(string connectionString) : ConfigurationProvider
     {
+        private static readonly Dictionary<string, string?> DefaultSettings = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["AllowedHosts"] = "*",
+            ["LuciarrSettings:TmdbAccessToken"] = null,
+            ["LuciarrSettings:AuthUsername"] = null,
+            ["LuciarrSettings:AuthPassword"] = null,
+            ["LuciarrSettings:TestMode"] = "True",
+            ["SonarrSettings:SonarrAPIKey"] = null,
+            ["SonarrSettings:SonarrAPIURL"] = null,
+            ["RadarrSettings:RadarrAPIKey"] = null,
+            ["RadarrSettings:RadarrAPIURL"] = null,
+            ["RadarrSettings:QualityProfileName"] = null,
+            ["RadarrSettings:RootFolderName"] = null,
+            ["RadarrSettings:MinimumAvailability"] = "Released",
+            ["RadarrSettings:SearchNewRequests"] = "True",
+            ["RadarrSettings:ImportNewMovies"] = "True",
+        };
+
         public override void Load()
         {
             using var dbContext = new SqliteDbContext(connectionString);
             
             dbContext.Database.EnsureCreated();
-            
-            Data = dbContext.ConfigSettings.Any()
-                ? dbContext.ConfigSettings.ToDictionary(
-                    static c => c.Id,
-                    static c => c.Value)
-                : CreateAndSaveDefaultValues(dbContext);
-        }
-
-        static Dictionary<string, string?> CreateAndSaveDefaultValues(SqliteDbContext context)
-        {
-            var settings = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+             
+            var currentSettings = dbContext.ConfigSettings.ToList();
+            foreach (var setting in DefaultSettings)
             {
-                ["AllowedHosts"] = "*",
-                ["LuciarrSettings:TmdbAccessToken"] = null,
-                ["LuciarrSettings:AuthUsername"] = null,
-                ["LuciarrSettings:AuthPassword"] = null,
-                ["LuciarrSettings:TestMode"] = true.ToString(),
-                ["SonarrSettings:SonarrAPIKey"] = null,
-                ["SonarrSettings:SonarrAPIURL"] = null,
-                ["RadarrSettings:RadarrAPIKey"] = null,
-                ["RadarrSettings:RadarrAPIURL"] = null,
-                ["RadarrSettings:QualityProfileName"] = null,
-                ["RadarrSettings:RootFolderName"] = null,
-                ["RadarrSettings:MinimumAvailability"] = "Released",
-                ["RadarrSettings:SearchNewRequests"] = true.ToString(),
-                ["RadarrSettings:ImportNewMovies"] = true.ToString(),
-            };
+                if (!currentSettings.Any(x => x.Id == setting.Key))
+                {
+                    dbContext.ConfigSettings.Add(new ConfigSetting(setting.Key, setting.Value));
+                }
+            }
 
-            context.ConfigSettings.AddRange(settings.Select(x => new ConfigSetting(x.Key, x.Value)));
+            dbContext.SaveChanges();
 
-            context.SaveChanges();
-
-            return settings;
+            Data = dbContext.ConfigSettings.Select(x => KeyValuePair.Create(x.Id, x.Value)).ToDictionary();
         }
     }
 }

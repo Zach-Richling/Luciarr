@@ -68,7 +68,7 @@ namespace Luciarr.WebApi.Controllers
                 );
 
                 var series = await _sonarrClient.GetSeriesByTvdbId(webhookSeries.TvdbId);
-                
+
                 if (series == null)
                 {
                     AccumulateAndLog(processingMessages, LogLevel.Warning, "Series with TvdbId {TvdbId} could not be found.", webhookSeries.TvdbId);
@@ -87,6 +87,7 @@ namespace Luciarr.WebApi.Controllers
                 }
 
                 var seasonFolders = Directory.GetDirectories(series.Path);
+                var lastSeason = series.Seasons.Max(x => x.SeasonNumber);
 
                 var previousSeasonIncomplete = false;
                 foreach (var season in series.Seasons.OrderBy(x => x.SeasonNumber))
@@ -98,6 +99,7 @@ namespace Luciarr.WebApi.Controllers
                             continue;
                         }
 
+                        //Try to find the season folder
                         var seasonFolder = seasonFolders.Where(x => GetSeasonRegex(season.SeasonNumber).IsMatch(x)).FirstOrDefault();
                         if (seasonFolder == null && season.Statistics.PercentOfEpisodes == 0)
                         {
@@ -111,7 +113,18 @@ namespace Luciarr.WebApi.Controllers
                         }
 
                         var plexIgnorePath = Path.Combine(seasonFolder, ".plexignore");
+
+                        //If the season is complete and no previous seasons are incomplete, unhide the season
                         if (season.Statistics.PercentOfEpisodes == 100 && !previousSeasonIncomplete)
+                        {
+                            if (System.IO.File.Exists(plexIgnorePath))
+                            {
+                                AccumulateAndLog(processingMessages, LogLevel.Information, "Unhiding {Name}, S{SeasonNumber}", series.Title, season.SeasonNumber);
+                                System.IO.File.Delete(plexIgnorePath);
+                            }
+                        }
+                        //Unhide the last season of a currently airing series
+                        else if (season.SeasonNumber == lastSeason && !series.Ended)
                         {
                             if (System.IO.File.Exists(plexIgnorePath))
                             {
@@ -123,14 +136,17 @@ namespace Luciarr.WebApi.Controllers
                         {
                             try
                             {
+                                //Get the currently hidden episodes in the season
                                 var currentHidden = new List<string>();
                                 if (System.IO.File.Exists(plexIgnorePath))
                                 {
                                     currentHidden.AddRange(System.IO.File.ReadAllLines(plexIgnorePath));
                                 }
 
+                                //Truncate or create the .plexignore file
                                 using var fileStream = new StreamWriter(System.IO.File.Create(plexIgnorePath));
 
+                                //If any previous season are incomplete, hide all episodes
                                 if (previousSeasonIncomplete)
                                 {
                                     if (!currentHidden.Contains("*")) 
@@ -145,6 +161,8 @@ namespace Luciarr.WebApi.Controllers
                                     var firstMissingEpisode = episodes.Where(x => !x.HasFile).Select(x => (int?)x.EpisodeNumber).Min();
 
                                     var filteredEpisodes = episodes.Where(x => x.EpisodeNumber >= firstMissingEpisode && !string.IsNullOrEmpty(x.EpisodeFile?.Path));
+
+                                    //This loop is just to show the user what episoes are being unhidden due to rewriting the .plexignore file
                                     foreach (var episode in currentHidden.Except(filteredEpisodes.Select(x => Path.GetFileName(x.EpisodeFile?.Path))))
                                     {
                                         if (!string.IsNullOrEmpty(episode)) 
@@ -153,6 +171,7 @@ namespace Luciarr.WebApi.Controllers
                                         }
                                     }
 
+                                    //Hide every episode after the first missing episode
                                     foreach (var episode in filteredEpisodes.OrderBy(x => x.EpisodeNumber))
                                     {
                                         var fileName = Path.GetFileName(episode.EpisodeFile!.Path);
