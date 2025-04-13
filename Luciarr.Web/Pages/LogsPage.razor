@@ -7,7 +7,7 @@
 
 <PageTitle>Logs</PageTitle>
 
-<Grid TItem="LogView" Class="table table-hover" DataProvider="LogDataProvider" AllowPaging="true" AllowSorting="true" PageSize="15" Responsive="true">
+<Grid TItem="LogView" Class="table table-hover" DataProvider="LogDataProvider" AllowPaging="true" AllowSorting="true" PageSize="15" Responsive="true" @ref="LogGrid">
     <GridColumns>
         <GridColumn TItem="LogView" HeaderText="Severity">
             <span class="@context.SeverityClass" @onclick="() => OnServerityPillClick(context)">@context.LogRecord.Level</span>
@@ -24,6 +24,10 @@
     </GridColumns>
 </Grid>
 
+<Button Color="ButtonColor.Danger" Class="mb-3" @onclick="PurgeLogs">
+    <Icon Name="IconName.XCircleFill" class="me-2"></Icon> Purge Logs
+</Button>
+
 <Modal @ref="ErrorModal" IsVerticallyCentered="true" Size="ModalSize.ExtraLarge" />
 
 @code {
@@ -31,11 +35,13 @@
 
     private Modal ErrorModal;
 
+    private Grid<LogView> LogGrid = default!;
+
     public async Task<GridDataProviderResult<LogView>> LogDataProvider(GridDataProviderRequest<LogView> request)
     {
         if (Logs == null)
         {
-            Logs = _context.Logs.AsEnumerable().OrderByDescending(x => x.Timestamp).Select(x => new LogView(x));
+            Logs = _context.Logs.OrderByDescending(x => x.Timestamp).Select(x => new LogView(x)).ToList();
         }
 
         return await Task.FromResult(request.ApplyTo(Logs));
@@ -46,15 +52,24 @@
         if (log.LogRecord.Level == "Error")
         {
             var parameters = new Dictionary<string, object>()
-                {
-                    ["Log"] = log.LogRecord
-                };
+            {
+                ["Log"] = log.LogRecord
+            };
 
             await ErrorModal.ShowAsync<ExceptionModal>(
                 title: $"{log.SourceContext}: {log.LogRecord.Timestamp.ToLocalTime()}",
                 parameters: parameters
             );
         }
+    }
+
+    public async Task PurgeLogs() 
+    {
+        _context.Logs.RemoveRange(_context.Logs);
+        await _context.SaveChangesAsync();
+        Logs = [];
+        await LogGrid.RefreshDataAsync();
+        //StateHasChanged();
     }
 
     public class LogView
